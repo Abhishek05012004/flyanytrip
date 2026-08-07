@@ -1,0 +1,64 @@
+/**
+ * ============================================================================
+ * PATH: client/src/pages/flights/booking/components/BookingSummary.jsx
+ * DESCRIPTION: Left-side/Right-side dedicated booking timing summary panel.
+ * ============================================================================
+ */
+
+import React from "react";
+import { Plane } from "lucide-react";
+
+export default function BookingSummary({ flight }) {
+  return (
+    <div className="bg-white border border-[#EAEAEA] rounded-2xl p-6 shadow-2xs text-left font-inter select-none">
+      <h3 className="text-[18.57px] font-bold text-[#1A1A1A] mb-1 font-inter">Booking Summary</h3>
+      <p className="text-[15.09px] text-[#666666] font-normal mb-5 font-inter">Review your trip details</p>
+
+      <div className="flex items-center space-x-4 border-b border-[#EAEAEA] pb-5 mb-5">
+        <div className="w-[37px] h-[37px] rounded-lg border border-gray-100 bg-white flex-shrink-0 overflow-hidden">
+          <img src={flight.logo} alt={flight.airline} className="w-full h-full object-cover" />
+        </div>
+        <div>
+          <h4 className="text-[16.25px] font-medium text-[#333333] font-inter">{flight.airline} - {flight.code}</h4>
+          <div className="text-[13.93px] text-[#666666] font-normal font-inter mt-1 flex flex-col space-y-0.5">
+            <span>DEL → BOM</span>
+            <span>15 Dec 2026 • Economy</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Departure & Arrival row details */}
+      <div className="flex items-center justify-between gap-4 text-xs font-bold text-gray-800">
+        <div>
+          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">06:00</span>
+          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">DEL</span>
+        </div>
+
+        <div className="flex-grow max-w-[200px] text-center flex flex-col items-center">
+          <span className="text-[12.77px] font-normal text-[#999999] font-inter">2h 10m</span>
+          
+          <div className="relative w-full flex items-center justify-between my-2.5">
+            <div className="w-[6px] h-[6px] rounded-full bg-[#EAEAEA]"></div>
+            <div className="h-[1px] flex-grow bg-[#EAEAEA]"></div>
+            <div className="w-[6px] h-[6px] rounded-full bg-[#EAEAEA]"></div>
+            
+            {/* Dot in center */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[12px] h-[12px] rounded-full bg-white border border-[#999999] flex items-center justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+              </div>
+            </div>
+          </div>
+
+          <span className="text-[11.60px] font-normal text-[#666666] font-inter">{flight.stops}</span>
+        </div>
+
+        <div className="text-right">
+          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">08:10</span>
+          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">BOM</span>
+        </div>
+      </div>
+
+    </div>
+  );
+}
