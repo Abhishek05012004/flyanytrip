@@ -512,10 +512,10 @@ export default function HeroSection() {
                 </span>
                 {priceVal && !isDisabled && (
                   <span className={`text-[9px] block mt-0.5 leading-none ${isSelected
-                      ? "text-white/95 font-medium"
-                      : isLowest
-                        ? "text-green-600 font-medium"
-                        : "text-gray-500 font-medium"
+                    ? "text-white/95 font-medium"
+                    : isLowest
+                      ? "text-green-600 font-medium"
+                      : "text-gray-500 font-medium"
                     }`}>
                     {priceStr}
                   </span>
@@ -1012,8 +1012,8 @@ export default function HeroSection() {
                       onClick={handleSearch}
                       disabled={selectedFrom?.code === selectedTo?.code}
                       className={`font-poppins font-semibold text-[15px] rounded-xl shadow-md transition-colors flex items-center justify-center space-x-2.5 w-full h-full min-h-[72px] ${selectedFrom?.code === selectedTo?.code
-                          ? "bg-gray-300 text-gray-500 pointer-events-none shadow-none"
-                          : "bg-[#FF2D1A] hover:bg-red-700 text-white hover:shadow-red-500/10 active:scale-95 cursor-pointer"
+                        ? "bg-gray-300 text-gray-500 pointer-events-none shadow-none"
+                        : "bg-[#FF2D1A] hover:bg-red-700 text-white hover:shadow-red-500/10 active:scale-95 cursor-pointer"
                         }`}
                     >
                       <img src="/assets/home/hero/icons/search.svg" alt="Search" className="w-5 h-5 brightness-0 invert" />

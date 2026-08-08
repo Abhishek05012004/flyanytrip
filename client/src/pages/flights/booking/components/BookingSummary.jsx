@@ -9,6 +9,20 @@ import React from "react";
 import { Plane } from "lucide-react";
 
 export default function BookingSummary({ flight }) {
+  const segments = flight.rawOption?.Segments?.[0] || [];
+  const firstLeg = segments[0] || {};
+  const lastLeg = segments[segments.length - 1] || firstLeg;
+
+  const formatDate = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const day = date.getDate();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
   return (
     <div className="bg-white border border-[#EAEAEA] rounded-2xl p-6 shadow-2xs text-left font-inter select-none">
       <h3 className="text-[18.57px] font-bold text-[#1A1A1A] mb-1 font-inter">Booking Summary</h3>
@@ -21,8 +35,8 @@ export default function BookingSummary({ flight }) {
         <div>
           <h4 className="text-[16.25px] font-medium text-[#333333] font-inter">{flight.airline} - {flight.code}</h4>
           <div className="text-[13.93px] text-[#666666] font-normal font-inter mt-1 flex flex-col space-y-0.5">
-            <span>DEL → BOM</span>
-            <span>15 Dec 2026 • Economy</span>
+            <span>{flight.fromCode} → {flight.toCode}</span>
+            <span>{formatDate(firstLeg?.Origin?.DepTime)} • {flight.rawOption?.FareClassification?.Type || "Economy"}</span>
           </div>
         </div>
       </div>
@@ -30,12 +44,12 @@ export default function BookingSummary({ flight }) {
       {/* Departure & Arrival row details */}
       <div className="flex items-center justify-between gap-4 text-xs font-bold text-gray-800">
         <div>
-          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">06:00</span>
-          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">DEL</span>
+          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">{flight.depTime}</span>
+          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">{flight.fromCode}</span>
         </div>
 
         <div className="flex-grow max-w-[200px] text-center flex flex-col items-center">
-          <span className="text-[12.77px] font-normal text-[#999999] font-inter">2h 10m</span>
+          <span className="text-[12.77px] font-normal text-[#999999] font-inter">{flight.duration}</span>
           
           <div className="relative w-full flex items-center justify-between my-2.5">
             <div className="w-[6px] h-[6px] rounded-full bg-[#EAEAEA]"></div>
@@ -54,8 +68,8 @@ export default function BookingSummary({ flight }) {
         </div>
 
         <div className="text-right">
-          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">08:10</span>
-          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">BOM</span>
+          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">{flight.arrTime}</span>
+          <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">{flight.toCode}</span>
         </div>
       </div>
 

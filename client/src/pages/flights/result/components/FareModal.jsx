@@ -15,6 +15,20 @@ export default function FareModal({ flight, onClose, onContinue }) {
   // Selected fare class state: 'saver', 'value', 'flexi'
   const [selectedFare, setSelectedFare] = useState("saver");
 
+  const segments = flight.rawOption?.Segments?.[0] || [];
+  const firstLeg = segments[0] || {};
+  const lastLeg = segments[segments.length - 1] || firstLeg;
+
+  const formatDate = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const day = date.getDate();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
   // Dynamic calculations matching Figma card values
   const fareDetails = {
     saver: {
@@ -70,7 +84,7 @@ export default function FareModal({ flight, onClose, onContinue }) {
           >
             <X className="w-3.5 h-3.5" />
           </button>
-
+ 
           {/* Primary Route Detail */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10">
             {/* Airline Info */}
@@ -80,7 +94,7 @@ export default function FareModal({ flight, onClose, onContinue }) {
               </div>
               <div>
                 <h3 className="font-black text-[15px] text-[#272727] leading-tight">{flight.airline} &bull; {flight.code}</h3>
-                <p className="text-[11px] text-[#7E7E7E] font-bold mt-1">Airbus A320 &bull; Economy</p>
+                <p className="text-[11px] text-[#7E7E7E] font-bold mt-1">{firstLeg.Craft || "Airbus A320"} &bull; {flight.rawOption?.FareClassification?.Type || "Economy"}</p>
                 <div className="flex items-center space-x-1 mt-0.5 text-amber-500 text-[10px] font-black">
                   <span>★</span>
                   <span className="text-[#7E7E7E] font-bold">4.2 &middot; 1,248 ratings</span>
@@ -90,14 +104,16 @@ export default function FareModal({ flight, onClose, onContinue }) {
 
             {/* Departure */}
             <div className="text-left md:text-center flex flex-col">
-              <span className="text-[22px] font-black text-[#272727] leading-none">06:00</span>
-              <span className="text-[13px] font-extrabold text-[#272727] uppercase mt-1">DEL</span>
-              <span className="text-[11px] font-bold text-[#7E7E7E] mt-0.5">Terminal 2</span>
+              <span className="text-[22px] font-black text-[#272727] leading-none">{flight.depTime}</span>
+              <span className="text-[13px] font-extrabold text-[#272727] uppercase mt-1">{flight.fromCode}</span>
+              <span className="text-[11px] font-bold text-[#7E7E7E] mt-0.5">
+                {firstLeg.Origin?.Airport?.Terminal ? `Terminal ${firstLeg.Origin.Airport.Terminal}` : ""}
+              </span>
             </div>
 
             {/* Timeline */}
             <div className="text-center w-28 hidden md:block">
-              <span className="text-[11px] font-bold text-[#7E7E7E]">2h 10m</span>
+              <span className="text-[11px] font-bold text-[#7E7E7E]">{flight.duration}</span>
               <div className="relative w-full flex items-center justify-between my-1">
                 <div className="w-1 h-1 rounded-full bg-gray-300"></div>
                 <div className="h-[1px] flex-grow bg-gray-200"></div>
@@ -106,14 +122,16 @@ export default function FareModal({ flight, onClose, onContinue }) {
                   <Plane className="w-3 h-3 text-[#7E7E7E] rotate-45 bg-white px-0.5 box-content" />
                 </div>
               </div>
-              <span className="text-[11px] text-[#7E7E7E] font-bold">Non-stop</span>
+              <span className="text-[11px] text-[#7E7E7E] font-bold">{flight.stops}</span>
             </div>
 
             {/* Arrival */}
             <div className="text-left md:text-center flex flex-col">
-              <span className="text-[22px] font-black text-[#272727] leading-none">08:10</span>
-              <span className="text-[13px] font-extrabold text-[#272727] uppercase mt-1">BOM</span>
-              <span className="text-[11px] font-bold text-[#7E7E7E] mt-0.5">Terminal 1</span>
+              <span className="text-[22px] font-black text-[#272727] leading-none">{flight.arrTime}</span>
+              <span className="text-[13px] font-extrabold text-[#272727] uppercase mt-1">{flight.toCode}</span>
+              <span className="text-[11px] font-bold text-[#7E7E7E] mt-0.5">
+                {lastLeg.Destination?.Airport?.Terminal ? `Terminal ${lastLeg.Destination.Airport.Terminal}` : ""}
+              </span>
             </div>
           </div>
 
@@ -121,15 +139,15 @@ export default function FareModal({ flight, onClose, onContinue }) {
           <div className="flex flex-wrap items-center gap-5 mt-4 text-[12px] font-bold text-[#6B6B6B] border-t border-[#EAEAEA] pt-3 select-none">
             <span className="flex items-center space-x-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#7E7E7E]" />
-              <span>15 Dec 2026</span>
+              <span>{formatDate(firstLeg.Origin?.DepTime)}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
-              <span>Economy Saver</span>
+              <span>{flight.rawOption?.FareClassification?.Type || "Economy"}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <Plane className="w-3.5 h-3.5 text-[#7E7E7E] rotate-45" />
-              <span>6E-204</span>
+              <span>{flight.code}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <Clock className="w-3.5 h-3.5 text-[#7E7E7E]" />

@@ -391,11 +391,11 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
       setRetCalendarFares({});
       const today = new Date();
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      
+
       // Fetch departure calendar fares (From -> To)
       fetchCalendarFaresForMonth(today, "departure");
       fetchCalendarFaresForMonth(nextMonth, "departure");
-      
+
       const dep = new Date(departureDate);
       if (dep.getMonth() !== today.getMonth() && dep.getMonth() !== nextMonth.getMonth()) {
         fetchCalendarFaresForMonth(dep, "departure");
@@ -487,23 +487,22 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                 disabled={isDisabled}
                 onClick={() => onSelect(dateStr)}
                 className={`h-[40px] w-full rounded-lg flex flex-col items-center justify-center transition-all focus:outline-none relative ${isSelected
-                    ? "bg-[#FF2D1A] text-white shadow-xs"
-                    : isDisabled
-                      ? "text-gray-300 cursor-not-allowed bg-transparent"
-                      : "hover:bg-red-50/40 text-gray-800 cursor-pointer"
+                  ? "bg-[#FF2D1A] text-white shadow-xs"
+                  : isDisabled
+                    ? "text-gray-300 cursor-not-allowed bg-transparent"
+                    : "hover:bg-red-50/40 text-gray-800 cursor-pointer"
                   }`}
               >
                 <span className={`text-[12px] font-bold ${isSelected ? "text-white" : isDisabled ? "text-gray-300" : "text-gray-800"}`}>
                   {dayNum}
                 </span>
                 {priceVal && !isDisabled && (
-                  <span className={`text-[8px] block mt-0.5 leading-none ${
-                    isSelected 
-                      ? "text-white/95 font-medium" 
-                      : isLowest 
-                        ? "text-green-600 font-medium" 
+                  <span className={`text-[8px] block mt-0.5 leading-none ${isSelected
+                      ? "text-white/95 font-medium"
+                      : isLowest
+                        ? "text-green-600 font-medium"
                         : "text-gray-500 font-medium"
-                  }`}>
+                    }`}>
                     {priceStr}
                   </span>
                 )}
@@ -604,10 +603,10 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
   return (
     <section className="bg-white py-3.5 border-b border-[#EAEAEA] font-inter text-left select-none sticky top-0 z-45">
       <div className="max-w-7xl mx-auto px-4">
-        
+
         {/* Modifier input row matching Figma spacing */}
         <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full">
-                   {/* Trip Type Select Dropdown */}
+          {/* Trip Type Select Dropdown */}
           <div ref={tripTypeRef} className={`border rounded-md px-3 py-1 bg-white flex flex-col justify-center h-[56px] w-[125px] text-[11px] relative cursor-pointer select-none transition-colors ${isTripTypeOpen ? "border-red-300" : "border-[#EAEAEA] hover:border-red-300"}`}>
             <span className="text-gray-400 font-medium leading-none">Trip Type</span>
             <div onClick={() => {
@@ -628,9 +627,8 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                     setFlightType("oneway");
                     setIsTripTypeOpen(false);
                   }}
-                  className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${
-                    flightType === "oneway" ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
-                  }`}
+                  className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${flightType === "oneway" ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
+                    }`}
                 >
                   One Way
                 </div>
@@ -639,9 +637,8 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                     setFlightType("roundtrip");
                     setIsTripTypeOpen(false);
                   }}
-                  className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${
-                    flightType === "roundtrip" ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
-                  }`}
+                  className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${flightType === "roundtrip" ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
+                    }`}
                 >
                   Round Trip
                 </div>
@@ -652,16 +649,16 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
           {/* Combined From/To Input Section with Overlapping Swap Icon */}
           <div className="relative flex items-center justify-between flex-grow lg:flex-grow-0 w-full lg:w-[370px]">
             {/* From Input */}
-            <div 
-              ref={fromRef} 
+            <div
+              ref={fromRef}
               onClick={() => fromInputRef.current?.focus()}
               className={`border rounded-md px-3 py-1 bg-white flex flex-col justify-center w-[calc(50%-8px)] lg:w-[175px] text-[11px] h-[56px] relative transition-colors cursor-text ${isFromOpen ? "border-red-300" : "border-[#EAEAEA] hover:border-red-300"}`}
             >
               <span className="text-gray-400 font-medium leading-none select-none cursor-text">From</span>
-              <input 
+              <input
                 ref={fromInputRef}
-                type="text" 
-                value={fromSearch} 
+                type="text"
+                value={fromSearch}
                 onChange={(e) => {
                   setFromSearch(e.target.value);
                   setIsFromOpen(true);
@@ -670,7 +667,7 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                   setIsFromOpen(true);
                   setFromSearch("");
                 }}
-                className="w-full text-gray-800 font-extrabold bg-transparent focus:outline-none mt-0.5 text-[13px] truncate cursor-text" 
+                className="w-full text-gray-800 font-extrabold bg-transparent focus:outline-none mt-0.5 text-[13px] truncate cursor-text"
               />
               {isFromOpen && (
                 <div className="absolute left-0 top-[calc(100%+1px)] bg-white rounded-xl shadow-2xl z-50 border border-[#EAEAEA] overflow-hidden w-[320px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
@@ -679,57 +676,57 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                       <div className="px-3 py-2 text-[10px] text-gray-400">No airports found</div>
                     ) : (
                       mergedFrom.map((airport) => (
-                      <div
-                        key={airport.code}
-                        onMouseDown={() => {
-                          setSelectedFrom(airport);
-                          setFromSearch(`${airport.CityName} (${airport.code})`);
-                          setIsFromOpen(false);
-                        }}
-                        className="px-3 py-2 hover:bg-red-50/50 cursor-pointer flex items-center justify-between border-b border-gray-100 last:border-0"
-                      >
-                        <div className="text-left flex-1 min-w-0 pr-2">
-                          <span className="font-extrabold text-xs text-gray-800 block truncate select-none">
-                            {airport.CityName}
-                            {airport.CountryName ? `, ${airport.CountryName}` : ""}
-                          </span>
-                          <span className="text-[9px] text-gray-400 block truncate select-none">{airport.name}</span>
+                        <div
+                          key={airport.code}
+                          onMouseDown={() => {
+                            setSelectedFrom(airport);
+                            setFromSearch(`${airport.CityName} (${airport.code})`);
+                            setIsFromOpen(false);
+                          }}
+                          className="px-3 py-2 hover:bg-red-50/50 cursor-pointer flex items-center justify-between border-b border-gray-100 last:border-0"
+                        >
+                          <div className="text-left flex-1 min-w-0 pr-2">
+                            <span className="font-extrabold text-xs text-gray-800 block truncate select-none">
+                              {airport.CityName}
+                              {airport.CountryName ? `, ${airport.CountryName}` : ""}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block truncate select-none">{airport.name}</span>
+                          </div>
+                          <span className="bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded text-[10px] font-mono select-none">{airport.code}</span>
                         </div>
-                        <span className="bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded text-[10px] font-mono select-none">{airport.code}</span>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
             </div>
-            
+
             {/* Location Swapper Button */}
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleSwap();
-              }} 
+              }}
               className="absolute left-1/2 -translate-x-1/2 z-10 w-[28px] h-[28px] active:scale-95 transition-transform duration-300 cursor-pointer"
             >
-              <img 
-                src="/assets/home/hero/icons/from-to.svg" 
-                alt="Swap" 
-                className="w-full h-full object-contain" 
+              <img
+                src="/assets/home/hero/icons/from-to.svg"
+                alt="Swap"
+                className="w-full h-full object-contain"
               />
             </button>
-            
+
             {/* To Input */}
-            <div 
-              ref={toRef} 
+            <div
+              ref={toRef}
               onClick={() => toInputRef.current?.focus()}
               className={`border rounded-md px-3 py-1 bg-white flex flex-col justify-center w-[calc(50%-8px)] lg:w-[175px] text-[11px] h-[56px] relative transition-colors cursor-text ${isToOpen ? "border-red-300" : "border-[#EAEAEA] hover:border-red-300"}`}
             >
               <span className="text-gray-400 font-medium leading-none select-none cursor-text">To</span>
-              <input 
+              <input
                 ref={toInputRef}
-                type="text" 
-                value={toSearch} 
+                type="text"
+                value={toSearch}
                 onChange={(e) => {
                   setToSearch(e.target.value);
                   setIsToOpen(true);
@@ -738,7 +735,7 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                   setIsToOpen(true);
                   setToSearch("");
                 }}
-                className="w-full text-gray-800 font-extrabold bg-transparent focus:outline-none mt-0.5 text-[13px] truncate" 
+                className="w-full text-gray-800 font-extrabold bg-transparent focus:outline-none mt-0.5 text-[13px] truncate"
               />
               {isToOpen && (
                 <div className="absolute right-0 top-[calc(100%+1px)] bg-white rounded-xl shadow-2xl z-50 border border-[#EAEAEA] overflow-hidden w-[320px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
@@ -747,26 +744,26 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                       <div className="px-3 py-2 text-[10px] text-gray-400">No airports found</div>
                     ) : (
                       mergedTo.map((airport) => (
-                      <div
-                        key={airport.code}
-                        onMouseDown={() => {
-                          setSelectedTo(airport);
-                          setToSearch(`${airport.CityName} (${airport.code})`);
-                          setIsToOpen(false);
-                        }}
-                        className="px-3 py-2 hover:bg-red-50/50 cursor-pointer flex items-center justify-between border-b border-gray-100 last:border-0"
-                      >
-                        <div className="text-left flex-1 min-w-0 pr-2">
-                          <span className="font-extrabold text-xs text-gray-800 block truncate select-none">
-                            {airport.CityName}
-                            {airport.CountryName ? `, ${airport.CountryName}` : ""}
-                          </span>
-                          <span className="text-[9px] text-gray-400 block truncate select-none">{airport.name}</span>
+                        <div
+                          key={airport.code}
+                          onMouseDown={() => {
+                            setSelectedTo(airport);
+                            setToSearch(`${airport.CityName} (${airport.code})`);
+                            setIsToOpen(false);
+                          }}
+                          className="px-3 py-2 hover:bg-red-50/50 cursor-pointer flex items-center justify-between border-b border-gray-100 last:border-0"
+                        >
+                          <div className="text-left flex-1 min-w-0 pr-2">
+                            <span className="font-extrabold text-xs text-gray-800 block truncate select-none">
+                              {airport.CityName}
+                              {airport.CountryName ? `, ${airport.CountryName}` : ""}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block truncate select-none">{airport.name}</span>
+                          </div>
+                          <span className="bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded text-[10px] font-mono select-none">{airport.code}</span>
                         </div>
-                        <span className="bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded text-[10px] font-mono select-none">{airport.code}</span>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -855,11 +852,10 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                   setCurrentCalDate(new Date(returnDate));
                 }
               }}
-              className={`border rounded-md px-3 py-1 bg-white flex justify-between items-center h-[56px] select-none transition-colors ${
-                flightType === "oneway"
+              className={`border rounded-md px-3 py-1 bg-white flex justify-between items-center h-[56px] select-none transition-colors ${flightType === "oneway"
                   ? "border-[#EAEAEA] opacity-50 cursor-not-allowed"
                   : `cursor-pointer ${isCalendarOpen === "return" ? "border-red-300" : "border-[#EAEAEA] hover:border-red-300"}`
-              }`}
+                }`}
             >
               <div className="flex-grow text-left flex flex-col justify-center">
                 <span className="text-gray-400 font-medium leading-none text-[11px]">Return</span>
@@ -922,11 +918,11 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
               <span>{adults + children + infants} Traveller{adults + children + infants > 1 ? "s" : ""}, {cabinClass}</span>
               <ChevronDown className="w-4 h-4 text-gray-450 shrink-0 ml-2" />
             </div>
-            
+
             {isTravelerOpen && (
               <div className="absolute right-0 top-[calc(100%+1px)] bg-white rounded-xl shadow-2xl p-4 z-50 w-64 space-y-3.5 border border-[#EAEAEA]" onClick={(e) => e.stopPropagation()}>
                 <h4 className="font-extrabold text-[11px] text-gray-500 uppercase tracking-wider">Select Travellers</h4>
-                
+
                 <div className="space-y-3">
                   {[
                     { label: "Adults", desc: "Age 12+", val: adults, set: setAdults, min: 1 },
@@ -943,16 +939,15 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                           <span className="text-xs font-bold">-</span>
                         </button>
                         <span className="font-extrabold text-xs text-gray-800 w-3 text-center">{item.val}</span>
-                        <div 
+                        <div
                           title={item.label === "Infants" && infants >= adults ? "Number of infants cannot be more than adults" : undefined}
                           className={item.label === "Infants" && infants >= adults ? "cursor-not-allowed" : ""}
                         >
                           <button
                             disabled={item.label === "Infants" && infants >= adults}
                             onClick={() => handleIncrement(item.label, item.val, item.set)}
-                            className={`w-6 h-6 rounded-full border border-gray-200 hover:border-gray-400 flex items-center justify-center bg-gray-50 cursor-pointer ${
-                              item.label === "Infants" && infants >= adults ? "opacity-40 pointer-events-none" : ""
-                            }`}
+                            className={`w-6 h-6 rounded-full border border-gray-200 hover:border-gray-400 flex items-center justify-center bg-gray-50 cursor-pointer ${item.label === "Infants" && infants >= adults ? "opacity-40 pointer-events-none" : ""
+                              }`}
                           >
                             <span className="text-xs font-bold">+</span>
                           </button>
@@ -987,9 +982,8 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                             setCabinClass(item.val);
                             setIsCabinDropdownOpen(false);
                           }}
-                          className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${
-                            cabinClass === item.val ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
-                          }`}
+                          className={`px-4 py-2.5 text-xs font-extrabold cursor-pointer hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0 ${cabinClass === item.val ? "text-[#FF2D1A] bg-red-50/30" : "text-gray-700"
+                            }`}
                         >
                           {item.label}
                         </div>
@@ -1007,14 +1001,13 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
 
           {/* Search Button */}
           <span className={selectedFrom?.code === selectedTo?.code ? "cursor-not-allowed" : ""}>
-            <button 
+            <button
               onClick={handleSearch}
               disabled={selectedFrom?.code === selectedTo?.code}
-              className={`font-extrabold text-[12px] px-6 rounded-md flex items-center justify-center space-x-1.5 transition-colors shadow-sm active:scale-95 group h-[56px] flex-shrink-0 ${
-                selectedFrom?.code === selectedTo?.code
+              className={`font-extrabold text-[12px] px-6 rounded-md flex items-center justify-center space-x-1.5 transition-colors shadow-sm active:scale-95 group h-[56px] flex-shrink-0 ${selectedFrom?.code === selectedTo?.code
                   ? "bg-gray-300 text-gray-500 pointer-events-none shadow-none"
                   : "bg-[#FF2D1A] hover:bg-red-700 text-white cursor-pointer"
-              }`}
+                }`}
             >
               <img src="/assets/home/hero/icons/search.svg" alt="Search" className="w-4 h-4 brightness-0 invert group-hover:scale-110 transition-transform duration-300" />
               <span>Search</span>
@@ -1031,9 +1024,8 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
               <button
                 key={fare.id}
                 onClick={() => setFareType(fare.id)}
-                className={`flex items-center space-x-1.5 border rounded px-3 py-1 bg-white hover:bg-gray-50 transition-all text-xs font-semibold ${
-                  isActive ? "border-gray-300 text-[#272727] bg-gray-50/20" : "border-[#EAEAEA] text-gray-400"
-                }`}
+                className={`flex items-center space-x-1.5 border rounded px-3 py-1 bg-white hover:bg-gray-50 transition-all text-xs font-semibold ${isActive ? "border-gray-300 text-[#272727] bg-gray-50/20" : "border-[#EAEAEA] text-gray-400"
+                  }`}
               >
                 {isActive ? (
                   <span className="w-3.5 h-3.5 rounded-full bg-[#FF2D1A] flex items-center justify-center text-white select-none">

@@ -11,6 +11,15 @@ export default function BookingPayment({
   basePrice,
   taxes
 }) {
+  const formatDate = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const day = date.getDate();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[date.getMonth()];
+    return `${day} ${month}`;
+  };
+
   const getMealLabel = (mealId) => {
     switch (mealId) {
       case "veg": return "Vegetarian";
@@ -37,7 +46,7 @@ export default function BookingPayment({
             <span className="text-[#6B6B6B] font-bold text-[14px]">Flight</span>
             <div className="text-right flex flex-col items-end">
               <span className="text-[#1A1A1A] font-bold text-[14px]">
-                {flight.airline} {flight.code} · DEL → BOM · 15 Dec
+                {flight.airline} {flight.code} · {flight.fromCode} → {flight.toCode} · {formatDate(flight.rawOption?.Segments?.[0]?.[0]?.Origin?.DepTime)}
               </span>
               <span className="text-[12px] text-[#6B6B6B] font-medium mt-1">
                 {flight.depTime} – {flight.arrTime} · {flight.stops} · {flight.duration}

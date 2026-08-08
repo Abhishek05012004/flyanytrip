@@ -287,7 +287,7 @@ export default function ResultPage() {
               return "--:--";
             };
 
-            const totalDurationMin = segments.reduce((sum, seg) => sum + (seg.Duration || 0), 0);
+            const totalDurationMin = segments.reduce((sum, seg) => sum + (seg.Duration || 0) + (seg.GroundTime || 0), 0);
             const formatDuration = (mins) => {
               const h = Math.floor(mins / 60);
               const m = mins % 60;
@@ -328,6 +328,7 @@ export default function ResultPage() {
               rawOption: option
             };
           });
+
           setFlights(mapped);
 
           // Do not align or override the calendar fare with the live flight search results.
