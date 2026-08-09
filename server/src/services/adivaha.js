@@ -103,3 +103,147 @@ export const updateCalendarFareOfDayAPI = async (params) => {
   }
 };
 
+export const getFareQuoteAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightFareQuote", {
+      action: "FlightFareQuote",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Flight Fare Quote Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch flight fare quote from provider");
+  }
+};
+
+export const getFareRulesAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightsFareRule", {
+      action: "FlightsFareRule",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Flight Fare Rules Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch flight fare rules from provider");
+  }
+};
+
+export const getSSRAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightSSR", {
+      action: "FlightSSR",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Flight SSR Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch flight SSR options from provider");
+  }
+};
+
+export const bookLCCTicketAPI = async (bookingData) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=LCCFlightTicket", {
+      action: "LCCFlightTicket",
+      ...bookingData
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha LCC Flight Ticket Error:", error.response?.data || error.message);
+    throw new Error("Failed to process LCC flight ticket booking");
+  }
+};
+
+export const bookNonLCCAPI = async (bookingData) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=NonLCCFlightBook", {
+      action: "NonLCCFlightBook",
+      ...bookingData
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Non LCC Flight Book Error:", error.response?.data || error.message);
+    throw new Error("Failed to process Non-LCC hold booking");
+  }
+};
+
+export const issueNonLCCTicketAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=NonLCCTicketIssue", {
+      action: "NonLCCTicketIssue",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Non LCC Ticket Issue Error:", error.response?.data || error.message);
+    throw new Error("Failed to issue Non-LCC flight ticket");
+  }
+};
+
+export const releaseHoldBookingAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ReleaseOrCancelHoldBooking", {
+      action: "ReleaseOrCancelHoldBooking",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Release Hold Booking Error:", error.response?.data || error.message);
+    throw new Error("Failed to release or cancel hold booking");
+  }
+};
+
+export const getBookingDetailsAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetBookingDetails", {
+      action: "GetBookingDetails",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Get Booking Details Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch booking details from provider");
+  }
+};
+
+export const getCancellationChargesAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetCancellationCharges", {
+      action: "GetCancellationCharges",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Cancellation Charges Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch cancellation charges from provider");
+  }
+};
+
+export const cancelBookingAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=CancelBooking", {
+      action: "CancelBooking",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Cancel Booking Error:", error.response?.data || error.message);
+    throw new Error("Failed to submit cancellation request to provider");
+  }
+};
+
+export const getCancellationStatusAPI = async (params) => {
+  try {
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetCancellationStatus", {
+      action: "GetCancellationStatus",
+      ...params
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Cancellation Status Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch cancellation status from provider");
+  }
+};
+
+

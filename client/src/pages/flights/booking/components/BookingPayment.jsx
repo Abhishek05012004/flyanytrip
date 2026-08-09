@@ -82,23 +82,21 @@ export default function BookingPayment({
 
           {/* Dynamic price summary box */}
           <div className="bg-[#FCECEC] rounded-xl p-[15px] flex items-center justify-between mt-5 font-inter">
-            <div className="text-left flex flex-col">
-              <span className="text-[11.25px] text-[#6B6B6B] font-medium">Base: ₹{basePrice.toLocaleString()}</span>
-              <span className="text-[11.25px] text-[#6B6B6B] font-medium mt-0.5">Taxes: ₹{taxes.toLocaleString()}</span>
+            <div className="grid grid-cols-[max-content_auto] gap-y-1 gap-x-2.5 text-[12px] text-[#555555] font-semibold items-center select-none">
+              <span>Base:</span>
+              <span className="font-bold">₹{basePrice.toLocaleString()}</span>
+
+              <span>Taxes:</span>
+              <span className="font-bold">₹{taxes.toLocaleString()}</span>
             </div>
-            <div className="text-right flex flex-col items-end">
+
+            <div className="text-right flex flex-col items-end justify-center">
               <span className="text-[11.25px] text-[#1A1A1A] font-semibold">Total Payable</span>
               <span className="text-[22.5px] font-bold text-[#1A1A1A] mt-0.5 leading-none">₹{totalAmount.toLocaleString()}</span>
             </div>
           </div>
 
         </div>
-      </div>
-
-      {/* PCI-DSS encryption disclaimer */}
-      <div className="bg-[#F0FDF4] border border-[#D0D0D0] rounded-xl p-[15px] flex items-center space-x-[11.25px] text-[11.25px] font-semibold text-[#00A63E] select-none font-inter leading-normal">
-        <Lock className="w-[18px] h-[18px] text-[#00A63E] flex-shrink-0" />
-        <span>Clicking &ldquo;Go to Payment&rdquo; takes you to our secure payment page. PCI DSS Level 1 certified · 256-bit SSL encryption · No charges until payment confirmed.</span>
       </div>
 
       {/* Pay CTA Button */}

@@ -6,8 +6,9 @@
  */
 
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Home } from "lucide-react";
+import axios from "axios";
 
 // Global layout wrappers (Unmodified)
 import Header from "../../../common/Header";
@@ -18,13 +19,18 @@ import BookingSteps from "./components/BookingSteps";
 import BookingInfo from "./components/BookingInfo";
 import BookingSeat from "./components/BookingSeat";
 import BookingPersonalize from "./components/BookingPersonalize";
-import BookingPayment from "./components/BookingPayment";
 import BookingSummary from "./components/BookingSummary";
 import FareSummary from "./components/FareSummary";
 
 export default function BookingPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Extract passenger counts from URL query params or state
+  const adultsCount = parseInt(searchParams.get("adults") || location.state?.adults || 1, 10);
+  const childrenCount = parseInt(searchParams.get("children") || location.state?.children || 0, 10);
+  const infantsCount = parseInt(searchParams.get("infants") || location.state?.infants || 0, 10);
 
   // Fallback default flight configuration
   const defaultFlight = {
@@ -43,28 +49,157 @@ export default function BookingPage() {
     badge: "Cheapest"
   };
 
-  // Retrieve parameters passed from the flight list page
-  const flight = location.state?.flight || defaultFlight;
-  const fare = location.state?.fare || { title: "Economy Saver", price: 3499 };
+  // Save active booking state to sessionStorage whenever location.state is available
+  React.useEffect(() => {
+    if (location.state?.flight) {
+      try {
+        sessionStorage.setItem("flyanytrip_active_booking", JSON.stringify(location.state));
+      } catch (err) {
+        console.warn("Could not save booking state to sessionStorage:", err);
+      }
+    }
+  }, [location.state]);
+
+  // Recover state from sessionStorage if location.state is empty after refresh
+  const getSavedBookingState = () => {
+    if (location.state?.flight) return location.state;
+    try {
+      const saved = sessionStorage.getItem("flyanytrip_active_booking");
+      if (saved) return JSON.parse(saved);
+    } catch (err) {
+      console.warn("Could not read booking state from sessionStorage:", err);
+    }
+    return null;
+  };
+
+  const savedState = getSavedBookingState();
+
+  // Retrieve parameters passed from the flight list page or restored from session
+  const [activeFlightState, setActiveFlightState] = useState(() => savedState?.flight || defaultFlight);
+  const [activeFareState, setActiveFareState] = useState(() => savedState?.fare || { title: "Economy Saver", price: 3499 });
+
+  const flight = savedState?.flight || activeFlightState;
+  const fare = savedState?.fare || activeFareState;
+  const traceId = location.state?.traceId || savedState?.traceId || searchParams.get("traceId");
+  const resultIndex = location.state?.resultIndex || savedState?.resultIndex || searchParams.get("resultIndex");
+
+  // Fetch live Fare Quote if state is missing on refresh but URL traceId/resultIndex exist
+  React.useEffect(() => {
+    const restoreFromFareQuote = async () => {
+      const activeTrace = searchParams.get("traceId");
+      const activeResIdx = searchParams.get("resultIndex");
+      if (!savedState?.flight && activeTrace && activeResIdx) {
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+          const res = await axios.post(`${API_BASE_URL}/flights/fare-quote`, { TraceId: activeTrace, ResultIndex: activeResIdx });
+          if (res.data?.responseData?.Response?.Results) {
+            const opt = res.data.responseData.Response.Results;
+            const segs = opt.Segments?.[0] || [];
+            const fLeg = segs[0] || {};
+            const lLeg = segs[segs.length - 1] || fLeg;
+            const aName = fLeg.Airline?.AirlineName || "Airline";
+            const aCode = fLeg.Airline?.AirlineCode || "IX";
+            const fNum = fLeg.Airline?.FlightNumber || "";
+            const priceVal = opt.Fare?.PublishedFare || 0;
+
+            const formatTime = (iso) => (iso ? iso.split("T")[1]?.substring(0, 5) || "--:--" : "--:--");
+            const restoredFlight = {
+              id: activeResIdx,
+              logo: `https://images.kiwi.com/airlines/64/${aCode.toUpperCase()}.png`,
+              airline: aName,
+              code: `${aCode}-${fNum}`,
+              depTime: formatTime(fLeg.Origin?.DepTime),
+              arrTime: formatTime(lLeg.Destination?.ArrTime),
+              fromCode: fLeg.Origin?.AirportCode || searchParams.get("from") || "DEL",
+              toCode: lLeg.Destination?.AirportCode || searchParams.get("to") || "BOM",
+              duration: `${Math.floor((fLeg.Duration || 120) / 60)}h ${(fLeg.Duration || 120) % 60}m`,
+              stops: segs.length === 1 ? "Non-stop" : `${segs.length - 1} Stop`,
+              price: `₹${Math.round(priceVal).toLocaleString()}`,
+              rawOption: opt
+            };
+
+            const restoredFare = {
+              title: opt.SupplierFareClass || opt.FareClassification?.Type || "Regular",
+              price: priceVal,
+              rawOption: opt
+            };
+
+            setActiveFlightState(restoredFlight);
+            setActiveFareState(restoredFare);
+
+            sessionStorage.setItem("flyanytrip_active_booking", JSON.stringify({
+              flight: restoredFlight,
+              fare: restoredFare,
+              traceId: activeTrace,
+              resultIndex: activeResIdx
+            }));
+          }
+        } catch (err) {
+          console.error("Error restoring flight from live fare quote:", err);
+        }
+      }
+    };
+
+    restoreFromFareQuote();
+  }, [searchParams, savedState]);
 
   // Stepper state: 1 = Info, 2 = Seat, 3 = Personalize, 4 = Payment
   const [step, setStep] = useState(1);
   const [selectedSeat, setSelectedSeat] = useState("");
+  const [seatPrice, setSeatPrice] = useState(0);
   const [addonsData, setAddonsData] = useState({
     meal: "none",
+    mealObj: null,
     addons: [],
     insurance: false,
     totalAdditional: 0
   });
 
+  // SSR Data state from API
+  const [ssrData, setSsrData] = useState(null);
+  const [loadingSSR, setLoadingSSR] = useState(false);
+
+  // Fetch live SSR data ONCE on mount per traceId/resultIndex
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchSSRData = async () => {
+      const activeTraceId = traceId || flight.rawOption?.TraceId;
+      const activeResultIndex = resultIndex || flight.rawOption?.ResultIndex;
+      if (!activeTraceId || !activeResultIndex) return;
+
+      // Avoid re-fetching if SSR data is already cached
+      if (ssrData) return;
+
+      try {
+        setLoadingSSR(true);
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+        const res = await axios.post(`${API_BASE_URL}/flights/ssr`, { TraceId: activeTraceId, ResultIndex: activeResultIndex });
+        if (isMounted && res.data?.responseData?.Response) {
+          setSsrData(res.data.responseData.Response);
+        }
+      } catch (err) {
+        console.error("Error fetching live SSR options:", err);
+      } finally {
+        if (isMounted) setLoadingSSR(false);
+      }
+    };
+
+    fetchSSRData();
+    return () => {
+      isMounted = false;
+    };
+  }, [traceId, resultIndex]);
+
   // Success dialog popup state
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
-  // Dynamic Fare Calculations
-  const basePrice = fare.price || 3499;
-  const taxes = Math.round(basePrice * 0.12); // ~12% Taxes & Fees
-  const additionalAmount = addonsData.totalAdditional;
-  const totalAmount = basePrice + taxes + additionalAmount;
+  // Dynamic Fare Calculations from exact API Response
+  const rawFareObj = location.state?.fare?.rawOption?.Fare || flight.rawOption?.Fare;
+  const pubFare = Math.round(rawFareObj?.PublishedFare || fare.price || 3499);
+  const basePrice = Math.round(rawFareObj?.BaseFare || pubFare * 0.7);
+  const taxes = pubFare - basePrice; // Exact Tax & Fees from API
+  const additionalAmount = addonsData.totalAdditional + seatPrice;
+  const totalAmount = pubFare + additionalAmount;
 
   // Setup history interception on mount
   React.useEffect(() => {
@@ -74,6 +209,7 @@ export default function BookingPage() {
     const handlePopState = (event) => {
       if (event.state && typeof event.state.step === "number") {
         setStep(event.state.step);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         navigate("/flights");
       }
@@ -85,10 +221,11 @@ export default function BookingPage() {
     };
   }, [navigate]);
 
-  // Custom step transition helper that pushes state to browser history
+  // Custom step transition helper that pushes state to browser history and scrolls smoothly to top
   const goToStep = (targetStep) => {
     setStep(targetStep);
     window.history.pushState({ step: targetStep }, "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePay = () => {
@@ -132,6 +269,9 @@ export default function BookingPage() {
             {step === 1 && (
               <BookingInfo
                 onContinue={() => goToStep(2)}
+                adultsCount={adultsCount}
+                childrenCount={childrenCount}
+                infantsCount={infantsCount}
               />
             )}
 
@@ -139,26 +279,18 @@ export default function BookingPage() {
               <BookingSeat
                 onContinue={() => goToStep(3)}
                 onSeatSelect={setSelectedSeat}
+                onSeatPriceSelect={setSeatPrice}
+                ssrData={ssrData}
+                loadingSSR={loadingSSR}
               />
             )}
 
             {step === 3 && (
               <BookingPersonalize
-                onContinue={() => goToStep(4)}
+                onContinue={handlePay}
                 onAddonsUpdate={setAddonsData}
-              />
-            )}
-
-            {step === 4 && (
-              <BookingPayment
-                flight={flight}
-                selectedFare={fare}
-                totalAmount={totalAmount}
-                onPay={handlePay}
-                selectedSeat={selectedSeat}
-                addonsData={addonsData}
-                basePrice={basePrice}
-                taxes={taxes}
+                ssrData={ssrData}
+                loadingSSR={loadingSSR}
               />
             )}
 

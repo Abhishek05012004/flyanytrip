@@ -54,6 +54,7 @@ export default function ResultPage() {
 
   // API states
   const [flights, setFlights] = useState([]);
+  const [traceId, setTraceId] = useState("");
   const [loading, setLoading] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [error, setError] = useState(null);
@@ -268,10 +269,25 @@ export default function ResultPage() {
 
         const responseData = response.data;
         if (responseData && responseData.responseData?.Response?.Results) {
+          const apiTraceId = responseData.responseData.Response.TraceId || "";
+          setTraceId(apiTraceId);
           const rawResults = responseData.responseData.Response.Results[0] || [];
 
-          // Map to Card's expected format
-          const mapped = rawResults.map((option, index) => {
+          // Group raw search results by flight itinerary signature to capture all fare tiers for each flight
+          const groupedMap = {};
+          rawResults.forEach((option) => {
+            const segs = option.Segments?.[0] || [];
+            const key = segs.map(s => `${s.Airline?.AirlineCode}${s.Airline?.FlightNumber}_${s.Origin?.DepTime}_${s.Destination?.ArrTime}`).join('|');
+            if (!groupedMap[key]) groupedMap[key] = [];
+            groupedMap[key].push(option);
+          });
+
+          // Map each unique itinerary to a card
+          const mapped = Object.values(groupedMap).map((fareOptionsGroup, index) => {
+            // Sort fare options by fare ascending
+            fareOptionsGroup.sort((a, b) => (a.Fare?.PublishedFare || 0) - (b.Fare?.PublishedFare || 0));
+            const option = fareOptionsGroup[0]; // Cheapest option for main card display
+
             const segments = option.Segments?.[0] || [];
             const firstLeg = segments[0] || {};
             const lastLeg = segments[segments.length - 1] || firstLeg;
@@ -337,7 +353,8 @@ export default function ResultPage() {
               business: `Cabin: ${cabinBaggage}`,
               badge: null,
               dayDiff,
-              rawOption: option
+              rawOption: option,
+              allFareOptions: fareOptionsGroup
             };
           });
 
@@ -642,10 +659,24 @@ export default function ResultPage() {
       {isModalOpen && selectedFlight && (
         <FareModal
           flight={selectedFlight}
+          traceId={traceId}
           onClose={() => setIsModalOpen(false)}
-          onContinue={(fare) => {
+          onContinue={(fare, quoteData) => {
             setIsModalOpen(false);
-            navigate("/flights/book", { state: { flight: selectedFlight, fare } });
+            const activeResultIndex = fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
+            const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(traceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
+            navigate(`/flights/book?${urlQuery}`, { 
+              state: { 
+                flight: selectedFlight, 
+                fare, 
+                traceId, 
+                resultIndex: activeResultIndex,
+                quoteData,
+                adults,
+                children,
+                infants
+              } 
+            });
           }}
         />
       )}

@@ -20,53 +20,53 @@ import {
   Check
 } from "lucide-react";
 
-export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
-  // Meals row configs
-  const mealsRow1 = [
-    { id: "veg", label: "Vegetarian", price: 299, emoji: "🥗" },
-    { id: "nonveg", label: "Non-Vegetarian", price: 349, emoji: "🍗" },
-    { id: "vegan", label: "Vegan", price: 329, emoji: "🌱" }
-  ];
-  const mealsRow2 = [
-    { id: "jain", label: "Jain", price: 299, emoji: "🫘" },
-    { id: "none", label: "No Preference", price: 0, emoji: "—" }
-  ];
+export default function BookingPersonalize({ onContinue, onAddonsUpdate, ssrData, loadingSSR }) {
+  // Parse API Meals if available
+  const apiMealItems = [];
+  if (Array.isArray(ssrData?.MealDynamic)) {
+    ssrData.MealDynamic.forEach(legMeals => {
+      if (Array.isArray(legMeals)) {
+        legMeals.forEach(meal => {
+          if (meal.Code && meal.Code !== "NoMeal" && !apiMealItems.some(m => m.id === meal.Code)) {
+            apiMealItems.push({
+              id: meal.Code,
+              label: meal.AirlineDescription || meal.Code,
+              price: meal.Price || 0,
+              emoji: "🍱",
+              rawObj: meal
+            });
+          }
+        });
+      }
+    });
+  }
 
-  // Add-on services config list
-  const addonsList = [
-    {
-      id: "bag_15",
-      label: "Extra Baggage — 15 kg",
-      price: 799,
-      desc: "Add 1 check-in bag",
-      icon: <Luggage className="w-[18px] h-[18px]" />,
-      badge: null
-    },
-    {
-      id: "bag_30",
-      label: "Extra Baggage — 30 kg",
-      price: 1399,
-      desc: "Add 2 check-in bags",
-      icon: <Luggage className="w-[18px] h-[18px]" />,
-      badge: "Better value"
-    },
-    {
-      id: "priority",
-      label: "Priority Boarding",
-      price: 299,
-      desc: "Board first, best overhead bin space",
-      icon: <Zap className="w-[18px] h-[18px]" />,
-      badge: "Popular"
-    },
-    {
-      id: "wifi",
-      label: "In-flight Wi-Fi",
-      price: 499,
-      desc: "Stay connected during the flight",
-      icon: <Wifi className="w-[18px] h-[18px]" />,
-      badge: null
-    }
-  ];
+  // Parse API Baggage if available
+  const apiBaggageItems = [];
+  if (Array.isArray(ssrData?.Baggage)) {
+    ssrData.Baggage.forEach(legBaggage => {
+      if (Array.isArray(legBaggage)) {
+        legBaggage.forEach(bag => {
+          if (bag.Code && bag.Code !== "NoBaggage" && bag.Price > 0 && !apiBaggageItems.some(b => b.id === bag.Code)) {
+            apiBaggageItems.push({
+              id: bag.Code,
+              label: bag.Text ? bag.Text.replace(/\n/g, ' ') : `Extra Baggage ${bag.Weight} KG`,
+              price: bag.Price || 0,
+              desc: `Add extra baggage (${bag.Weight} KG)`,
+              badge: bag.Weight >= 15 ? "Popular" : null,
+              rawObj: bag
+            });
+          }
+        });
+      }
+    });
+  }
+
+  const activeMealsList = apiMealItems.length > 0 
+    ? [{ id: "none", label: "No Meal Preference", price: 0, emoji: "—" }, ...apiMealItems]
+    : [];
+
+  const activeAddonsList = apiBaggageItems;
 
   // States
   const [selectedMeal, setSelectedMeal] = useState("none");
@@ -98,10 +98,11 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
   };
 
   const triggerPriceUpdate = (mealId, addons, insurance) => {
-    const allMeals = [...mealsRow1, ...mealsRow2];
-    const mealPrice = allMeals.find(m => m.id === mealId)?.price || 0;
+    const selectedMealObj = activeMealsList.find(m => m.id === mealId);
+    const mealPrice = selectedMealObj?.price || 0;
+
     const addonsPrice = addons.reduce((sum, aId) => {
-      const price = addonsList.find(item => item.id === aId)?.price || 0;
+      const price = activeAddonsList.find(item => item.id === aId)?.price || 0;
       return sum + price;
     }, 0);
     const insurancePrice = insurance ? 149 : 0;
@@ -109,6 +110,7 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
     // Dispatch total additional sum up to parent
     onAddonsUpdate({
       meal: mealId,
+      mealObj: selectedMealObj?.rawObj || null,
       addons: addons,
       insurance: insurance,
       totalAdditional: mealPrice + addonsPrice + insurancePrice
@@ -130,25 +132,29 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
           </h3>
         </div>
 
-        <div className="space-y-[11px]">
-          {/* Row 1: 3 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[11px]">
-            {mealsRow1.map((meal) => {
+        {loadingSSR ? (
+          <div className="py-8 text-center text-gray-500 font-medium text-xs space-y-2">
+            <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p>Loading meal options from airline...</p>
+          </div>
+        ) : activeMealsList.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[11px]">
+            {activeMealsList.map((meal) => {
               const isSelected = selectedMeal === meal.id;
               return (
                 <button
                   type="button"
                   key={meal.id}
                   onClick={() => handleMealSelect(meal.id)}
-                  className={`border rounded-lg p-[13.125px] h-[58px] text-left cursor-pointer transition-all flex items-center justify-between font-inter ${isSelected
+                  className={`border rounded-lg p-[13.125px] min-h-[58px] text-left cursor-pointer transition-all flex items-center justify-between font-inter ${isSelected
                       ? "border-[#FF2D1A] bg-[#FFF5F4]"
                       : "border-[#EAEAEA] hover:border-gray-300 bg-white"
                     }`}
                 >
-                  <div className="flex items-center space-x-[11.25px] select-none overflow-hidden">
-                    <span className="text-[18.75px] leading-none flex-shrink-0">{meal.emoji}</span>
+                  <div className="flex items-center space-x-[11.25px] select-none overflow-hidden pr-2">
+                    <span className="text-[18.75px] leading-none flex-shrink-0">{meal.emoji || "🍱"}</span>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11.25px] font-bold text-[#333333] leading-normal truncate">{meal.label}</span>
+                      <span className="text-[11.25px] font-bold text-[#333333] leading-normal line-clamp-2">{meal.label}</span>
                       <span className="text-[11.25px] font-medium text-[#6B6B6B] leading-none mt-0.5">
                         {meal.price === 0 ? "Free" : `+₹${meal.price}`}
                       </span>
@@ -161,38 +167,11 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
               );
             })}
           </div>
-
-          {/* Row 2: 2 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[11px]">
-            {mealsRow2.map((meal) => {
-              const isSelected = selectedMeal === meal.id;
-              return (
-                <button
-                  type="button"
-                  key={meal.id}
-                  onClick={() => handleMealSelect(meal.id)}
-                  className={`border rounded-lg p-[13.125px] h-[59px] text-left cursor-pointer transition-all flex items-center justify-between font-inter ${isSelected
-                      ? "border-[#FF2D1A] bg-[#FFF5F4]"
-                      : "border-[#EAEAEA] hover:border-gray-300 bg-white"
-                    }`}
-                >
-                  <div className="flex items-center space-x-[11.25px] select-none overflow-hidden">
-                    <span className="text-[18.75px] leading-none flex-shrink-0">{meal.emoji}</span>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11.25px] font-bold text-[#333333] leading-normal truncate">{meal.label}</span>
-                      <span className="text-[11.25px] font-medium text-[#6B6B6B] leading-none mt-0.5">
-                        {meal.price === 0 ? "Free" : `+₹${meal.price}`}
-                      </span>
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <Check className="w-[16px] h-[16px] text-[#FF2D1A] stroke-[3] ml-2 flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        ) : (
+          <p className="text-xs text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            Pre-booked meal options are not offered by the airline for this specific flight route. In-flight purchase may be available.
+          </p>
+        )}
       </div>
 
       {/* 2. Add-on Services Card */}
@@ -202,96 +181,65 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate }) {
           <span>Add-on Service</span>
         </h3>
 
-        <div className="space-y-[11.25px]">
-          {addonsList.map((addon) => {
-            const isAdded = selectedAddons.includes(addon.id);
-            return (
-              <div
-                key={addon.id}
-                className="border border-[#D0D0D0] rounded-xl p-[15px] h-[70px] flex items-center justify-between gap-4 bg-white font-inter"
-              >
+        {loadingSSR ? (
+          <div className="py-8 text-center text-gray-500 font-medium text-xs space-y-2">
+            <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p>Loading baggage add-ons from airline...</p>
+          </div>
+        ) : activeAddonsList.length > 0 ? (
+          <div className="space-y-[11.25px]">
+            {activeAddonsList.map((addon) => {
+              const isAdded = selectedAddons.includes(addon.id);
+              return (
+                <div
+                  key={addon.id}
+                  className="border border-[#D0D0D0] rounded-xl p-[15px] min-h-[70px] flex items-center justify-between gap-4 bg-white font-inter"
+                >
 
-                {/* Left Visual Icon + Description */}
-                <div className="flex items-center space-x-[11.25px]">
-                  {/* Left Colored Icon box */}
-                  <div className="w-[38px] h-[38px] rounded-lg bg-[#FFD9D9] flex items-center justify-center flex-shrink-0 select-none">
-                    {React.cloneElement(addon.icon, { className: "w-[18px] h-[18px] text-[#FF2D1A]" })}
-                  </div>
-
-                  <div className="text-left select-none">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-bold text-[13.125px] text-[#1A1A1A]">{addon.label}</h4>
-                      {addon.badge && (
-                        <span className="bg-[#F0F0F0] text-[#6B6B6B] text-[11.25px] font-bold px-2.5 py-0.5 rounded-full">
-                          {addon.badge}
-                        </span>
-                      )}
+                  {/* Left Visual Icon + Description */}
+                  <div className="flex items-center space-x-[11.25px]">
+                    {/* Left Colored Icon box */}
+                    <div className="w-[38px] h-[38px] rounded-lg bg-[#FFD9D9] flex items-center justify-center flex-shrink-0 select-none">
+                      <Luggage className="w-[18px] h-[18px] text-[#FF2D1A]" />
                     </div>
-                    <p className="text-[11.25px] text-[#6B6B6B] font-medium mt-0.5">{addon.desc}</p>
+
+                    <div className="text-left select-none">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-bold text-[13.125px] text-[#1A1A1A]">{addon.label}</h4>
+                        {addon.badge && (
+                          <span className="bg-[#F0F0F0] text-[#6B6B6B] text-[11.25px] font-bold px-2.5 py-0.5 rounded-full">
+                            {addon.badge}
+                          </span>
+                        )}
+                      </div>
+                      {addon.desc && <p className="text-[11.25px] text-[#6B6B6B] font-medium mt-0.5">{addon.desc}</p>}
+                    </div>
                   </div>
+
+                  {/* Right price and action */}
+                  <div className="flex items-center space-x-[11.25px] flex-shrink-0">
+                    <span className="text-[13.125px] font-bold text-[#1A1A1A]">+₹{addon.price}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleAddonClick(addon.id)}
+                      className={`text-[11.25px] font-bold rounded-[13.375px] cursor-pointer h-[28px] w-[63px] flex items-center justify-center border transition-all whitespace-nowrap ${isAdded
+                          ? "bg-[#FF2D1A] border-[#FF2D1A] text-white"
+                          : "bg-[#FFEFEF] border-[#FF8484] hover:bg-[#FFE5E5] text-[#E53935]"
+                        }`}
+                    >
+                      {isAdded ? "Added" : "+ Add"}
+                    </button>
+                  </div>
+
                 </div>
-
-                {/* Right price and action */}
-                <div className="flex items-center space-x-[11.25px] flex-shrink-0">
-                  <span className="text-[13.125px] font-bold text-[#1A1A1A]">+₹{addon.price}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleAddonClick(addon.id)}
-                    className={`text-[11.25px] font-bold rounded-[13.375px] cursor-pointer h-[28px] w-[63px] flex items-center justify-center border transition-all whitespace-nowrap ${isAdded
-                        ? "bg-[#FF2D1A] border-[#FF2D1A] text-white"
-                        : "bg-[#FFEFEF] border-[#FF8484] hover:bg-[#FFE5E5] text-[#E53935]"
-                      }`}
-                  >
-                    {isAdded ? "Added" : "+ Add"}
-                  </button>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Travel Insurance Card */}
-      <div className="bg-white border border-[#D0D0D0] rounded-2xl p-[18.75px] h-[77px] shadow-2xs select-none font-inter">
-        <div className="flex items-center justify-between gap-4 h-full">
-
-          {/* Left Details */}
-          <div className="flex items-center space-x-[11.25px]">
-            {/* Shield Check green icon box */}
-            <div className="w-[38px] h-[38px] rounded-lg bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-[18px] h-[18px] text-[#00A63E]" />
-            </div>
-
-            <div className="text-left">
-              <div className="flex items-center space-x-2">
-                <span className="text-[13.125px] font-bold text-[#1A1A1A]">Travel Insurance</span>
-                <span className="bg-[#00C950] text-white text-[11.25px] font-bold px-2.5 py-0.5 rounded-full">
-                  Recommended
-                </span>
-              </div>
-              <p className="text-[11.25px] text-[#6B6B6B] font-medium mt-0.5">
-                ₹5L coverage · Trip cancellation · Medical emergency · Baggage loss
-              </p>
-            </div>
+              );
+            })}
           </div>
-
-          {/* Right Action */}
-          <div className="flex items-center space-x-[11.25px] flex-shrink-0">
-            <span className="text-[13.125px] font-bold text-[#1A1A1A]">₹149</span>
-            <button
-              type="button"
-              onClick={handleInsuranceClick}
-              className={`text-[11.25px] font-bold rounded-[13.375px] cursor-pointer h-[28px] w-[63px] flex items-center justify-center border transition-all whitespace-nowrap ${isInsuranceAdded
-                  ? "bg-[#00A63E] border-[#00A63E] text-white"
-                  : "bg-[#FF2D1A] border-[#D0D0D0] hover:bg-red-700 text-white"
-                }`}
-            >
-              {isInsuranceAdded ? "Added" : "+ Add"}
-            </button>
-          </div>
-
-        </div>
+        ) : (
+          <p className="text-xs text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            No extra check-in baggage add-ons available for pre-purchase from the airline for this fare class.
+          </p>
+        )}
       </div>
 
       {/* Continue CTA */}

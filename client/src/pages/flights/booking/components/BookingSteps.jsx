@@ -12,8 +12,7 @@ export default function BookingSteps({ currentStep }) {
   const steps = [
     { id: 1, label: "Fill Your Info", icon: <User className="w-4 h-4" /> },
     { id: 2, label: "Choose Seat", icon: <MapPin className="w-4 h-4" /> },
-    { id: 3, label: "Personalize Trip", icon: <Star className="w-4 h-4" /> },
-    { id: 4, label: "Finalize Payment", icon: <CreditCard className="w-4 h-4" /> }
+    { id: 3, label: "Personalize Trip", icon: <Star className="w-4 h-4" /> }
   ];
 
   return (
@@ -29,8 +28,6 @@ export default function BookingSteps({ currentStep }) {
         <div className={`h-full flex-1 transition-colors duration-500 ${currentStep > 1 ? "bg-emerald-500" : "bg-gray-200"}`}></div>
         {/* Segment 2: Step 2 to 3 */}
         <div className={`h-full flex-1 transition-colors duration-500 ${currentStep > 2 ? "bg-emerald-500" : "bg-gray-200"}`}></div>
-        {/* Segment 3: Step 3 to 4 */}
-        <div className={`h-full flex-1 transition-colors duration-500 ${currentStep > 3 ? "bg-emerald-500" : "bg-gray-200"}`}></div>
       </div>
 
       {/* Steps Flex Row */}

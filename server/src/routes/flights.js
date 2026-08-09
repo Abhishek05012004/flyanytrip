@@ -1,5 +1,21 @@
 import express from "express";
-import { getFlightLocationsAPI, searchFlightsAPI, getCalendarFareAPI, updateCalendarFareOfDayAPI } from "../services/adivaha.js";
+import {
+  getFlightLocationsAPI,
+  searchFlightsAPI,
+  getCalendarFareAPI,
+  updateCalendarFareOfDayAPI,
+  getFareQuoteAPI,
+  getFareRulesAPI,
+  getSSRAPI,
+  bookLCCTicketAPI,
+  bookNonLCCAPI,
+  issueNonLCCTicketAPI,
+  releaseHoldBookingAPI,
+  getBookingDetailsAPI,
+  getCancellationChargesAPI,
+  cancelBookingAPI,
+  getCancellationStatusAPI
+} from "../services/adivaha.js";
 
 const router = express.Router();
 
@@ -114,4 +130,127 @@ router.post("/update-calendar-fare", async (req, res, next) => {
   }
 });
 
+// Flight Fare Quote
+router.post("/fare-quote", async (req, res, next) => {
+  try {
+    const { TraceId, ResultIndex } = req.body;
+    if (!TraceId || !ResultIndex) {
+      return res.status(400).json({ success: false, message: "TraceId and ResultIndex are required" });
+    }
+    const data = await getFareQuoteAPI({ TraceId, ResultIndex });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Flight Fare Rules
+router.post("/fare-rules", async (req, res, next) => {
+  try {
+    const { TraceId, ResultIndex } = req.body;
+    if (!TraceId || !ResultIndex) {
+      return res.status(400).json({ success: false, message: "TraceId and ResultIndex are required" });
+    }
+    const data = await getFareRulesAPI({ TraceId, ResultIndex });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Flight SSR (Special Service Request - Meals, Baggage, Seats)
+router.post("/ssr", async (req, res, next) => {
+  try {
+    const { TraceId, ResultIndex } = req.body;
+    if (!TraceId || !ResultIndex) {
+      return res.status(400).json({ success: false, message: "TraceId and ResultIndex are required" });
+    }
+    const data = await getSSRAPI({ TraceId, ResultIndex });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// LCC Ticket Booking
+router.post("/book-lcc", async (req, res, next) => {
+  try {
+    const data = await bookLCCTicketAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Non-LCC Flight Book (Hold)
+router.post("/book-non-lcc", async (req, res, next) => {
+  try {
+    const data = await bookNonLCCAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Non-LCC Ticket Issue
+router.post("/issue-ticket", async (req, res, next) => {
+  try {
+    const data = await issueNonLCCTicketAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Release or Cancel Hold Booking
+router.post("/release-hold", async (req, res, next) => {
+  try {
+    const data = await releaseHoldBookingAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Booking Details
+router.post("/booking-details", async (req, res, next) => {
+  try {
+    const data = await getBookingDetailsAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Cancellation Charges
+router.post("/cancellation-charges", async (req, res, next) => {
+  try {
+    const data = await getCancellationChargesAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Cancel Booking
+router.post("/cancel-booking", async (req, res, next) => {
+  try {
+    const data = await cancelBookingAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Cancellation Status
+router.post("/cancellation-status", async (req, res, next) => {
+  try {
+    const data = await getCancellationStatusAPI(req.body);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+

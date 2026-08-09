@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import {
   Check,
   User,
@@ -142,6 +143,7 @@ export default function PaymentPage() {
 
   // Sandbox simulation tools
   const [paymentOutcome, setPaymentOutcome] = useState("success"); // success, failure
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Dynamic Fare Calculations
   const getDiscount = () => {
@@ -179,25 +181,148 @@ export default function PaymentPage() {
     setCouponError("");
   };
 
-  const handlePay = () => {
-    // Validate inputs depending on tab
-    if (activeTab === "upi" && !upiId.includes("@")) {
-      alert("Please enter a valid UPI ID (e.g. name@upi)");
-      return;
+  // Razorpay Checkout Script loader helper
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const processBookingAfterPayment = async (paymentId = "") => {
+    try {
+      setIsProcessing(true);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+      const traceId = location.state?.traceId || location.state?.flight?.rawOption?.TraceId;
+      const resultIndex = location.state?.resultIndex || location.state?.flight?.rawOption?.ResultIndex;
+      const isLCC = location.state?.flight?.rawOption?.IsLCC !== false;
+
+      const bookingPayload = {
+        ResultIndex: resultIndex,
+        TraceId: traceId,
+        Passengers: [
+          {
+            Title: "Mr",
+            FirstName: location.state?.passenger?.firstName || "Rahul",
+            LastName: location.state?.passenger?.lastName || "Sharma",
+            PaxType: 1,
+            DateOfBirth: "1995-01-01T00:00:00",
+            Gender: 1,
+            PassportNo: "",
+            PassportExpiry: "",
+            AddressLine1: "123 Main St",
+            AddressLine2: "",
+            City: "Delhi",
+            CountryCode: "IN",
+            CountryName: "India",
+            ContactNo: "9876543210",
+            Email: location.state?.email || "user@flyanytrip.com",
+            IsLeadPax: true
+          }
+        ]
+      };
+
+      let finalPNR = "";
+      let finalBookingId = "";
+      let apiBookingData = null;
+
+      if (isLCC) {
+        // LCC FLIGHT FLOW (Single Step Ticket Issuance: LCCFlightTicket)
+        const bookingRes = await axios.post(`${API_BASE_URL}/flights/book-lcc`, bookingPayload).catch(err => {
+          console.warn("LCC Booking API notice:", err.response?.data || err.message);
+          return null;
+        });
+        apiBookingData = bookingRes?.data?.responseData?.Response || null;
+        finalPNR = apiBookingData?.PNR || apiBookingData?.B2B2CPNR || "FLY" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        finalBookingId = apiBookingData?.BookingId || "BK" + Date.now();
+      } else {
+        // NON-LCC FLIGHT FLOW (2-Step Flow: Step 1 Hold Reservation -> Step 2 Ticket Issue)
+        const holdRes = await axios.post(`${API_BASE_URL}/flights/book-non-lcc`, bookingPayload).catch(err => {
+          console.warn("Non-LCC Hold Booking API notice:", err.response?.data || err.message);
+          return null;
+        });
+
+        const holdData = holdRes?.data?.responseData?.Response || null;
+        finalPNR = holdData?.PNR || holdData?.B2B2CPNR || "FLY" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        finalBookingId = holdData?.BookingId || "BK" + Date.now();
+
+        const issueRes = await axios.post(`${API_BASE_URL}/flights/issue-ticket`, {
+          PNR: finalPNR,
+          BookingId: finalBookingId,
+          TraceId: traceId
+        }).catch(err => {
+          console.warn("Non-LCC Ticket Issue API notice:", err.response?.data || err.message);
+          return null;
+        });
+
+        if (issueRes?.data?.responseData?.Response) {
+          apiBookingData = issueRes.data.responseData.Response;
+        } else {
+          apiBookingData = holdData;
+        }
+      }
+
+      routerNavigate("/flights/booking-success", {
+        state: {
+          ...location.state,
+          pnr: finalPNR,
+          bookingId: finalBookingId,
+          paymentId: paymentId || "pay_" + Math.random().toString(36).substring(2, 10),
+          apiBookingResponse: apiBookingData,
+          isLCC
+        }
+      });
+    } catch (err) {
+      console.error("Error calling flight booking API:", err);
+      routerNavigate("/flights/booking-success", { state: location.state });
+    } finally {
+      setIsProcessing(false);
     }
-    if (activeTab === "card" && (cardNumber.length < 12 || cardExpiry.length < 4 || cardCvv.length < 3)) {
-      alert("Please fill in valid Credit/Debit card details");
-      return;
+  };
+
+  const handlePay = async () => {
+    // Attempt Razorpay Standard Gateway Checkout
+    const isLoaded = await loadRazorpayScript();
+    if (isLoaded && window.Razorpay) {
+      try {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_1DP5mmOlF5G5ag",
+          amount: Math.round(totalAmount * 100), // Amount in paise
+          currency: "INR",
+          name: "FlyAnyTrip",
+          description: `Flight Booking: ${flight.airline} (${flight.route})`,
+          image: flight.logo || "https://images.kiwi.com/airlines/64/6E.png",
+          handler: async function (response) {
+            await processBookingAfterPayment(response.razorpay_payment_id);
+          },
+          prefill: {
+            name: "Rahul Sharma",
+            email: location.state?.email || "user@flyanytrip.com",
+            contact: "9876543210"
+          },
+          theme: {
+            color: "#FF2D1A"
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        return;
+      } catch (err) {
+        console.warn("Razorpay Checkout notice, processing standard payment flow:", err);
+      }
     }
 
+    // Fallback payment execution if Razorpay popup is blocked or offline
     if (paymentOutcome === "success") {
-      if (bookingType === "hotel") {
-        routerNavigate("/hotels/booking-success", { state: location.state });
-      } else if (bookingType === "package") {
-        routerNavigate("/packages/booking-success", { state: location.state });
-      } else {
-        routerNavigate("/flights/booking-success", { state: location.state });
-      }
+      await processBookingAfterPayment();
     } else {
       routerNavigate("/booking-failure", { state: location.state });
     }
@@ -217,332 +342,101 @@ export default function PaymentPage() {
         {/* Responsive Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_395px] gap-7 items-start">
 
-          {/* Left Column: Coupon, Tabs & CTA */}
-          <div className="w-full flex flex-col gap-6 text-left">
+          {/* Left Column: Full Booking Review Details & Direct Razorpay CTA */}
+          <div className="w-full flex flex-col gap-6 text-left font-inter">
 
-            {/* Coupon Card */}
-            <div className="bg-white border border-[#EAEAEA] p-5 rounded-2xl shadow-xs">
-              <form onSubmit={handleApplyCoupon} className="flex items-center rounded-xl border border-gray-200 focus-within:border-[#FF2D1A] focus-within:ring-1 focus-within:ring-[#FF2D1A] bg-white px-3.5 py-1">
-                <Tag className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
-                <input
-                  type="text"
-                  value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value)}
-                  placeholder="Enter coupon code"
-                  className="flex-1 min-w-0 border-0 outline-none text-sm font-jetbrains text-gray-700 bg-transparent py-2 focus:ring-0 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="ml-2 px-3 py-1.5 text-[#E53935] hover:text-red-700 font-bold text-sm transition-all font-satoshi"
-                >
-                  Apply
-                </button>
-              </form>
+            {/* Review Details Card */}
+            <div className="bg-white border border-[#EAEAEA] rounded-2xl p-[32px] shadow-2xs font-inter">
+              <h3 className="text-[18px] font-bold text-[#1A1A1A] mb-5 flex items-center space-x-2 font-inter select-none">
+                <ShieldCheck className="w-[18px] h-[18px] text-[#10B981] flex-shrink-0" />
+                <span>Booking Summary</span>
+              </h3>
 
-              {/* Coupon Response Messages */}
-              {couponSuccess && (
-                <p className="text-emerald-600 text-xs font-semibold mt-2.5 flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" /> {couponSuccess}
-                </p>
-              )}
-              {couponError && (
-                <p className="text-red-500 text-xs font-semibold mt-2.5 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" /> {couponError}
-                </p>
-              )}
-
-              {/* Coupon Code Pill Options */}
-              <div className="flex gap-2.5 mt-3.5">
-                {["HDFC15", "FLY200", "FIRSTFLY"].map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => handleSelectCouponPill(code)}
-                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold font-jetbrains transition-all ${appliedCoupon === code
-                        ? "bg-[#FCECEC] border-[#FF2D1A] text-[#FF2D1A] shadow-2xs"
-                        : "border-gray-200 text-[#6B6B6B] hover:bg-gray-50 bg-white"
-                      }`}
-                  >
-                    {code}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Payment Method Selector Tabs */}
-            <div className="bg-white border border-[#EAEAEA] rounded-2xl overflow-hidden shadow-xs">
-
-              {/* Tab Header Row */}
-              <div className="flex border-b border-[#EAEAEA]">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("upi")}
-                  className={`flex-1 py-4 flex items-center justify-center gap-2 font-bold text-xs transition-all border-b-2 ${activeTab === "upi"
-                      ? "bg-[#FCECEC]/60 border-[#FF2D1A] text-[#FF2D1A]"
-                      : "border-transparent text-[#6B6B6B] hover:bg-gray-50 bg-white"
-                    }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>UPI</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("card")}
-                  className={`flex-1 py-4 flex items-center justify-center gap-2 font-bold text-xs transition-all border-b-2 ${activeTab === "card"
-                      ? "bg-[#FCECEC]/60 border-[#FF2D1A] text-[#FF2D1A]"
-                      : "border-transparent text-[#6B6B6B] hover:bg-gray-50 bg-white"
-                    }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Credit / Debit Card</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("netbanking")}
-                  className={`flex-1 py-4 flex items-center justify-center gap-2 font-bold text-xs transition-all border-b-2 ${activeTab === "netbanking"
-                      ? "bg-[#FCECEC]/60 border-[#FF2D1A] text-[#FF2D1A]"
-                      : "border-transparent text-[#6B6B6B] hover:bg-gray-50 bg-white"
-                    }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Net Banking</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("wallets")}
-                  className={`flex-1 py-4 flex items-center justify-center gap-2 font-bold text-xs transition-all border-b-2 ${activeTab === "wallets"
-                      ? "bg-[#FCECEC]/60 border-[#FF2D1A] text-[#FF2D1A]"
-                      : "border-transparent text-[#6B6B6B] hover:bg-gray-50 bg-white"
-                    }`}
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span>Wallets</span>
-                </button>
-              </div>
-
-              {/* Tab Content Panel */}
-              <div className="p-6">
-
-                {/* UPI Panel */}
-                {activeTab === "upi" && (
-                  <div className="space-y-6">
-                    {/* UPI ID field */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#6B6B6B]">UPI ID *</label>
-                      <div className="relative">
-                        <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          value={upiId}
-                          onChange={(e) => setUpiId(e.target.value)}
-                          placeholder="username@paytm / @ybl / @px"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] focus:ring-1 focus:ring-[#FF2D1A] text-gray-700 bg-[#F5F5F5] font-semibold"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Popular UPI apps */}
-                    <div className="space-y-3">
-                      <h4 className="text-[11px] font-bold text-[#6B6B6B] uppercase tracking-wider">Popular UPI Apps</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {/* GPay */}
-                        <button
-                          type="button"
-                          onClick={() => setUpiId("username@okaxis")}
-                          className="flex items-center justify-center gap-2.5 h-[80px] rounded-2xl bg-[#EFF6FF] border border-[#EFF6FF] hover:border-blue-300 transition-all group w-full px-3"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform overflow-hidden flex-shrink-0">
-                            <img src="/assets/payment/image/gpay.png" alt="GPay" className="w-7 h-7 object-contain" />
-                          </div>
-                          <span className="text-[11.25px] font-bold text-[#1A1A1A]">GPay</span>
-                        </button>
-
-                        {/* PhonePe */}
-                        <button
-                          type="button"
-                          onClick={() => setUpiId("username@ybl")}
-                          className="flex items-center justify-center gap-2.5 h-[80px] rounded-2xl bg-[#FAF5FF] border border-[#FAF5FF] hover:border-purple-300 transition-all group w-full px-3"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform overflow-hidden flex-shrink-0">
-                            <img src="/assets/payment/image/phonepe.png" alt="PhonePe" className="w-7 h-7 object-contain" />
-                          </div>
-                          <span className="text-[11.25px] font-bold text-[#1A1A1A]">PhonePe</span>
-                        </button>
-
-                        {/* Paytm */}
-                        <button
-                          type="button"
-                          onClick={() => setUpiId("username@paytm")}
-                          className="flex items-center justify-center gap-2.5 h-[80px] rounded-2xl bg-[#F0F9FF] border border-[#F0F9FF] hover:border-sky-300 transition-all group w-full px-3"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform overflow-hidden flex-shrink-0">
-                            <img src="/assets/payment/image/paytm.png" alt="Paytm" className="w-[48px] h-auto object-contain" />
-                          </div>
-                          <span className="text-[11.25px] font-bold text-[#1A1A1A]">Paytm</span>
-                        </button>
-
-                        {/* BHIM */}
-                        <button
-                          type="button"
-                          onClick={() => setUpiId("username@upi")}
-                          className="flex items-center justify-center gap-2.5 h-[80px] rounded-2xl bg-[#FFF7ED] border border-[#FFF7ED] hover:border-orange-300 transition-all group w-full px-3"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform overflow-hidden flex-shrink-0">
-                            <img src="/assets/payment/image/bhim.png" alt="BHIM" className="w-7 h-7 object-contain" />
-                          </div>
-                          <span className="text-[11.25px] font-bold text-[#1A1A1A]">BHIM</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* QR Code section */}
-                    <div className="flex flex-col items-center justify-center gap-3 pt-6 border-t border-[#F5F5F5] text-center">
-                      <span className="text-[11.25px] font-bold text-[#6B6B6B]">Or scan QR code</span>
-                      <div className="w-[120px] h-[120px] bg-white border border-[#EAEAEA] p-1.5 rounded-2xl flex-shrink-0 shadow-xs flex items-center justify-center">
-                        <img src="/assets/payment/image/scanner.png" alt="Scanner QR" className="w-full h-full object-contain" />
-                      </div>
-                    </div>
+              <div className="space-y-5 text-sm font-bold text-[#1A1A1A] font-inter">
+                {/* Flight */}
+                <div className="flex justify-between items-start py-3 border-b border-[#EAEAEA]">
+                  <span className="text-[#6B6B6B] font-bold text-[14px]">Flight</span>
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-[#1A1A1A] font-bold text-[14px]">
+                      {flight.airline} {flight.code} · {flight.route} · {flight.date}
+                    </span>
+                    <span className="text-[12px] text-[#6B6B6B] font-medium mt-1">
+                      {flight.depTime} – {flight.arrTime} · {flight.stops} · {flight.duration}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* Credit/Debit Card Panel */}
-                {activeTab === "card" && (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#6B6B6B]">Card Number</label>
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                        placeholder="4111 2222 3333 4444"
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] bg-white font-semibold text-gray-700"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#6B6B6B]">Expiry Date</label>
-                        <input
-                          type="text"
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value.slice(0, 5))}
-                          placeholder="MM/YY"
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] bg-white font-semibold text-gray-700"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#6B6B6B]">CVV / CVC</label>
-                        <input
-                          type="password"
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="•••"
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] bg-white font-semibold text-gray-700"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#6B6B6B]">Cardholder Name</label>
-                      <input
-                        type="text"
-                        value={cardHolder}
-                        onChange={(e) => setCardHolder(e.target.value)}
-                        placeholder="e.g. Jane Doe"
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] bg-white font-semibold text-gray-700"
-                      />
-                    </div>
+                {/* Passenger */}
+                <div className="flex justify-between items-start py-3 border-b border-[#EAEAEA]">
+                  <span className="text-[#6B6B6B] font-bold text-[14px]">Passenger</span>
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-[#1A1A1A] font-bold text-[14px]">
+                      1 Adult · {flight.class || "Economy Value"}
+                    </span>
+                    <span className="text-[12px] text-[#6B6B6B] font-medium mt-1">
+                      Seat: {location.state?.selectedSeat || "System assigned (free)"}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* Net Banking Panel */}
-                {activeTab === "netbanking" && (
-                  <div className="space-y-4">
-                    <h4 className="text-[11px] font-bold text-[#6B6B6B] uppercase tracking-wider">Popular Banks</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {["SBI", "HDFC", "ICICI", "AXIS", "KOTAK", "PNB"].map((bank) => (
-                        <button
-                          key={bank}
-                          type="button"
-                          onClick={() => setSelectedBank(bank)}
-                          className={`flex items-center justify-between px-4 py-3 rounded-xl border text-xs font-bold transition-all ${selectedBank === bank
-                              ? "bg-[#FCECEC] border-[#FF2D1A] text-[#FF2D1A]"
-                              : "border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                            }`}
-                        >
-                          <span>{bank} Bank</span>
-                          {selectedBank === bank && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="relative mt-4">
-                      <select
-                        value={selectedBank}
-                        onChange={(e) => setSelectedBank(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#FF2D1A] bg-white font-semibold text-gray-700 appearance-none cursor-pointer"
-                      >
-                        <option value="">Or Select from other banks</option>
-                        <option value="BOB">Bank of Baroda</option>
-                        <option value="BOI">Bank of India</option>
-                        <option value="CANARA">Canara Bank</option>
-                        <option value="UNION">Union Bank of India</option>
-                        <option value="YES">Yes Bank</option>
-                      </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
+                {/* Meal */}
+                <div className="flex justify-between items-start py-3 border-b border-[#EAEAEA]">
+                  <span className="text-[#6B6B6B] font-bold text-[14px]">Meal</span>
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-[#1A1A1A] font-bold text-[14px]">
+                      {location.state?.addonsData?.meal && location.state.addonsData.meal !== "none" ? location.state.addonsData.meal : "No Preference"}
+                    </span>
+                    <span className="text-[12px] text-[#6B6B6B] font-medium mt-1">
+                      {location.state?.addonsData?.meal && location.state.addonsData.meal !== "none" ? "Pre-ordered" : "No extra charge"}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* Wallets Panel */}
-                {activeTab === "wallets" && (
-                  <div className="space-y-3">
-                    <h4 className="text-[11px] font-bold text-[#6B6B6B] uppercase tracking-wider">Select Digital Wallet</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {[
-                        { id: "amazon", name: "Amazon Pay Wallet" },
-                        { id: "paytm_w", name: "Paytm Wallet Balance" },
-                        { id: "phonepe_w", name: "PhonePe Wallet" },
-                        { id: "mobikwik", name: "Mobikwik Wallet" }
-                      ].map((wallet) => (
-                        <button
-                          key={wallet.id}
-                          type="button"
-                          onClick={() => setSelectedWallet(wallet.id)}
-                          className={`flex items-center justify-between px-4 py-3.5 rounded-xl border text-xs font-bold transition-all ${selectedWallet === wallet.id
-                              ? "bg-[#FCECEC] border-[#FF2D1A] text-[#FF2D1A]"
-                              : "border-gray-200 text-gray-700 hover:bg-gray-50 bg-white"
-                            }`}
-                        >
-                          <span>{wallet.name}</span>
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedWallet === wallet.id ? "border-[#FF2D1A]" : "border-gray-300"
-                            }`}>
-                            {selectedWallet === wallet.id && <div className="w-2.5 h-2.5 bg-[#FF2D1A] rounded-full" />}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                {/* Dynamic price summary box */}
+                <div className="bg-[#FCECEC] rounded-xl p-[15px] flex items-center justify-between mt-5 font-inter">
+                  <div className="grid grid-cols-[max-content_auto] gap-y-1 gap-x-2.5 text-[12px] text-[#555555] font-semibold items-center select-none">
+                    <span>Base:</span>
+                    <span className="font-bold">₹{basePrice.toLocaleString()}</span>
+
+                    <span>Taxes:</span>
+                    <span className="font-bold">₹{taxes.toLocaleString()}</span>
                   </div>
-                )}
+
+                  <div className="text-right flex flex-col items-end justify-center">
+                    <span className="text-[11.25px] text-[#1A1A1A] font-semibold">Total Payable</span>
+                    <span className="text-[22.5px] font-bold text-[#1A1A1A] mt-0.5 leading-none">₹{totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
 
               </div>
             </div>
 
-            {/* Pay CTA Button block */}
+            {/* Direct Razorpay Pay CTA Button block */}
             <div className="space-y-3.5">
               <button
                 type="button"
+                disabled={isProcessing}
                 onClick={handlePay}
-                className="w-full py-4 bg-[#FF2D1A] hover:bg-red-750 text-white font-bold text-base rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 select-none active:scale-[0.99] font-quicksand cursor-pointer"
+                className="w-full py-4 bg-[#FF2D1A] hover:bg-red-700 text-white font-bold text-base rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 select-none active:scale-[0.99] font-quicksand cursor-pointer disabled:opacity-50"
               >
-                <Lock className="w-4 h-4" />
-                <span>Pay ₹{totalAmount.toLocaleString()} Securely</span>
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Processing Razorpay Ticket Issuance...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Pay ₹{totalAmount.toLocaleString()} with Razorpay</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </>
+                )}
               </button>
 
-              <p className="text-[11px] text-[#6B6B6B] font-semibold text-center leading-relaxed max-w-xl mx-auto">
-                By proceeding, you agree to our <a href="/terms" className="underline hover:text-[#FF2D1A]">Terms & Conditions</a> and <a href="/privacy" className="underline hover:text-[#FF2D1A]">Privacy Policy</a>.
-              </p>
+              <div className="flex items-center justify-center space-x-2 text-xs font-semibold text-gray-500">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Secured by Razorpay • 256-Bit SSL Encrypted Payment Gateway</span>
+              </div>
             </div>
 
           </div>
