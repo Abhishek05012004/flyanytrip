@@ -307,6 +307,17 @@ export default function ResultPage() {
             const cabinBaggage = firstLeg.CabinBaggage || "7 KG";
             const isRefundable = option.IsRefundable;
 
+            // Calculate day difference
+            const depDateStr = firstLeg.Origin?.DepTime?.split("T")[0];
+            const arrDateStr = lastLeg.Destination?.ArrTime?.split("T")[0];
+            let dayDiff = 0;
+            if (depDateStr && arrDateStr) {
+              const dDate = new Date(depDateStr);
+              const aDate = new Date(arrDateStr);
+              const timeDiff = aDate.getTime() - dDate.getTime();
+              dayDiff = Math.max(0, Math.round(timeDiff / (1000 * 3600 * 24)));
+            }
+
             return {
               id: option.ResultIndex || index,
               logo,
@@ -325,6 +336,7 @@ export default function ResultPage() {
               flexi: `Baggage: ${baggage}`,
               business: `Cabin: ${cabinBaggage}`,
               badge: null,
+              dayDiff,
               rawOption: option
             };
           });

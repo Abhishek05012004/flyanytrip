@@ -22,47 +22,92 @@ export default function FareModal({ flight, onClose, onContinue }) {
   const formatDate = (isoString) => {
     if (!isoString) return "";
     const date = new Date(isoString);
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayOfWeek = days[date.getDay()];
     const day = date.getDate();
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const month = months[date.getMonth()];
     const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
+    return `${dayOfWeek}, ${day} ${month} ${year}`;
   };
 
-  // Dynamic calculations matching Figma card values
+  const cabinVal = firstLeg.CabinBaggage || "7 KG";
+  const baggageVal = firstLeg.Baggage || "15 KG";
+
+  // Parse penalties from API response
+  const rawCancel = flight.rawOption?.PenaltyCharges?.CancellationCharge;
+  const rawReissue = flight.rawOption?.PenaltyCharges?.ReissueCharge;
+
+  const getPenaltyFee = (chargeStr, fallback) => {
+    if (!chargeStr) return fallback;
+    const num = parseInt(chargeStr.replace(/[^\d]/g, ""), 10);
+    if (isNaN(num)) return chargeStr;
+    return `₹${num.toLocaleString('en-IN')} fee`;
+  };
+
+  const getReducedFee = (chargeStr, reduction, fallback) => {
+    if (!chargeStr) return fallback;
+    const num = parseInt(chargeStr.replace(/[^\d]/g, ""), 10);
+    if (isNaN(num)) return chargeStr;
+    const reduced = Math.max(0, num - reduction);
+    return reduced === 0 ? "Free" : `₹${reduced.toLocaleString('en-IN')} fee`;
+  };
+
+  const parsedCancel = getPenaltyFee(rawCancel, "₹3,500 fee");
+  const parsedReissue = getPenaltyFee(rawReissue, "₹3,000 fee");
+  const valueCancel = getReducedFee(rawCancel, 1000, "₹2,500 fee");
+  const valueReissue = getReducedFee(rawReissue, 1000, "₹2,000 fee");
+
+  // Parse Inclusions
+  const apiPerks = [];
+  if (Array.isArray(flight.rawOption?.FareInclusions)) {
+    flight.rawOption.FareInclusions.forEach(inc => {
+      if (inc) {
+        inc.split("&&").forEach(p => {
+          const t = p.trim();
+          if (t && t.toLowerCase() !== "included") {
+            const cap = t.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+            apiPerks.push(cap);
+          }
+        });
+      }
+    });
+  }
+
+  // Dynamic calculations matching API values
   const fareDetails = {
     saver: {
       title: "Economy Saver",
       badge: "Cheapest",
       badgeType: "red",
       price: basePriceNum,
-      cabin: "1 × 7 kg",
-      checkIn: "Check-in: Not included",
-      cancel: "₹3,500 fee",
-      change: "₹3,000 fee",
-      perks: []
+      cabin: cabinVal,
+      checkIn: `Check-in: ${baggageVal}`,
+      cancel: parsedCancel,
+      change: parsedReissue,
+      perks: apiPerks
     },
     value: {
       title: "Economy Value",
       badge: "Popular",
       badgeType: "gray",
       price: basePriceNum + 800,
-      cabin: "1 × 7 kg",
-      checkIn: "Check-in: 1 × 15 kg",
-      cancel: "₹2,000 fee",
-      change: "₹1,500 fee",
-      perks: ["Seat selection included"]
+      cabin: cabinVal,
+      checkIn: `Check-in: ${baggageVal} (Included)`,
+      cancel: valueCancel,
+      change: valueReissue,
+      perks: ["Seat selection included", ...apiPerks]
     },
     flexi: {
       title: "Economy Flexi",
       badge: "Best Value",
       badgeType: "gray",
       price: basePriceNum + 2200,
-      cabin: "1 × 7 kg",
-      checkIn: "Check-in: 2 × 15 kg",
+      cabin: cabinVal,
+      checkIn: `Check-in: ${baggageVal} (Included)`,
       cancel: "Free cancellation",
       change: "Free date change",
-      perks: ["Seat selection included", "Priority boarding", "Free meal"]
+      perks: ["Seat selection included", "Priority boarding", "Free meal", ...apiPerks]
     }
   };
 
@@ -86,19 +131,15 @@ export default function FareModal({ flight, onClose, onContinue }) {
           </button>
  
           {/* Primary Route Detail */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-20 md:pr-28">
             {/* Airline Info */}
-            <div className="flex items-center space-x-3.5">
+            <div className="flex items-center space-x-3.5 w-64 flex-shrink-0">
               <div className="w-9 h-9 rounded-lg border border-gray-100 bg-white flex-shrink-0 overflow-hidden">
                 <img src={flight.logo} alt={flight.airline} className="w-full h-full object-cover" />
               </div>
               <div>
                 <h3 className="font-black text-[15px] text-[#272727] leading-tight">{flight.airline} &bull; {flight.code}</h3>
-                <p className="text-[11px] text-[#7E7E7E] font-bold mt-1">{firstLeg.Craft || "Airbus A320"} &bull; {flight.rawOption?.FareClassification?.Type || "Economy"}</p>
-                <div className="flex items-center space-x-1 mt-0.5 text-amber-500 text-[10px] font-black">
-                  <span>★</span>
-                  <span className="text-[#7E7E7E] font-bold">4.2 &middot; 1,248 ratings</span>
-                </div>
+                <p className="text-[11px] text-[#7E7E7E] font-bold mt-1">{formatDate(firstLeg.Origin?.DepTime)}</p>
               </div>
             </div>
 
@@ -112,7 +153,7 @@ export default function FareModal({ flight, onClose, onContinue }) {
             </div>
 
             {/* Timeline */}
-            <div className="text-center w-28 hidden md:block">
+            <div className="text-center flex-grow max-w-[180px] hidden md:block mx-6">
               <span className="text-[11px] font-bold text-[#7E7E7E]">{flight.duration}</span>
               <div className="relative w-full flex items-center justify-between my-1">
                 <div className="w-1 h-1 rounded-full bg-gray-300"></div>
@@ -127,32 +168,20 @@ export default function FareModal({ flight, onClose, onContinue }) {
 
             {/* Arrival */}
             <div className="text-left md:text-center flex flex-col">
-              <span className="text-[22px] font-black text-[#272727] leading-none">{flight.arrTime}</span>
+              <div className="relative inline-flex items-center justify-start md:justify-center">
+                <span className="text-[22px] font-black text-[#272727] leading-none">{flight.arrTime}</span>
+                {flight.dayDiff > 0 && (
+                  <span className="absolute left-full ml-1 text-[9px] font-bold text-[#FF2D1A] select-none flex flex-col items-start leading-[1.1] top-0 whitespace-nowrap">
+                    <span>+{flight.dayDiff}</span>
+                    <span className="text-[7px] uppercase tracking-wider text-gray-500">Day</span>
+                  </span>
+                )}
+              </div>
               <span className="text-[13px] font-extrabold text-[#272727] uppercase mt-1">{flight.toCode}</span>
               <span className="text-[11px] font-bold text-[#7E7E7E] mt-0.5">
                 {lastLeg.Destination?.Airport?.Terminal ? `Terminal ${lastLeg.Destination.Airport.Terminal}` : ""}
               </span>
             </div>
-          </div>
-
-          {/* Quick info icons row */}
-          <div className="flex flex-wrap items-center gap-5 mt-4 text-[12px] font-bold text-[#6B6B6B] border-t border-[#EAEAEA] pt-3 select-none">
-            <span className="flex items-center space-x-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#7E7E7E]" />
-              <span>{formatDate(firstLeg.Origin?.DepTime)}</span>
-            </span>
-            <span className="flex items-center space-x-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
-              <span>{flight.rawOption?.FareClassification?.Type || "Economy"}</span>
-            </span>
-            <span className="flex items-center space-x-1.5">
-              <Plane className="w-3.5 h-3.5 text-[#7E7E7E] rotate-45" />
-              <span>{flight.code}</span>
-            </span>
-            <span className="flex items-center space-x-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#7E7E7E]" />
-              <span>On-time: 89%</span>
-            </span>
           </div>
 
         </div>
@@ -245,19 +274,7 @@ export default function FareModal({ flight, onClose, onContinue }) {
 
         </div>
 
-        {/* ========================================================================= */}
-        {/* 3. HOTEL PROMO STRIP                                                     */}
-        {/* ========================================================================= */}
-        <div className="px-5 py-2.5 bg-[#FFF3F2] border-t border-b border-[#FFE4E2] flex items-center justify-between text-[11px] font-bold text-[#FF2D1A] select-none">
-          <div className="flex items-center space-x-1.5">
-            <Building className="w-4 h-4 text-[#FF2D1A] flex-shrink-0" />
-            <span>Book a hotel &amp; save up to 22% on bundled bookings &ndash; exclusive for flight passengers!</span>
-          </div>
-          <button className="hover:underline flex items-center space-x-0.5 cursor-pointer text-[#FF2D1A] font-extrabold bg-transparent border-0 outline-none">
-            <span>View</span>
-            <ChevronRight className="w-3 h-3 inline" />
-          </button>
-        </div>
+
 
         {/* ========================================================================= */}
         {/* 4. MODAL ACTION FOOTER                                                    */}

@@ -68,7 +68,15 @@ export default function BookingSummary({ flight }) {
         </div>
 
         <div className="text-right">
-          <span className="text-[17.41px] font-bold block text-[#333333] font-inter">{flight.arrTime}</span>
+          <div className="relative inline-flex items-center justify-end">
+            <span className="text-[17.41px] font-bold block text-[#333333] font-inter">{flight.arrTime}</span>
+            {flight.dayDiff > 0 && (
+              <span className="absolute left-full ml-1 text-[9px] font-bold text-[#FF2D1A] select-none flex flex-col items-start leading-[1.1] top-0 whitespace-nowrap">
+                <span>+{flight.dayDiff}</span>
+                <span className="text-[7px] uppercase tracking-wider text-gray-500">Day</span>
+              </span>
+            )}
+          </div>
           <span className="text-[13.93px] font-normal text-[#666666] block mt-1 font-inter">{flight.toCode}</span>
         </div>
       </div>
