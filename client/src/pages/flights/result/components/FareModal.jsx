@@ -77,12 +77,83 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
   const cabinVal = firstLeg.CabinBaggage || "7 KG";
   const baggageVal = firstLeg.Baggage || "15 KG";
 
-  // Parse penalties from API response
-  const getPenaltyFee = (chargeStr, fallback) => {
-    if (!chargeStr) return fallback;
-    const num = parseInt(chargeStr.replace(/[^\d]/g, ""), 10);
-    if (isNaN(num)) return chargeStr;
-    return `₹${num.toLocaleString('en-IN')} fee`;
+  // Parse MiniFareRules dynamically strictly from API response (Search API or live Fare Rules API)
+  const parseFareRules = (opt, quoteData) => {
+    let cancelList = [];
+    let changeList = [];
+
+    // 1. Check MiniFareRules array inside option (from Search API)
+    let rawMiniRules = opt.MiniFareRules;
+    if (Array.isArray(rawMiniRules) && rawMiniRules.length > 0) {
+      const rulesFlat = rawMiniRules.flat(2);
+      rulesFlat.forEach(r => {
+        if (!r || typeof r !== "object") return;
+        
+        const type = (r.Type || "").toLowerCase();
+        let rawDetails = r.Details ? r.Details.replace(/INR/g, "₹").trim() : "";
+        
+        // Ensure 'fee' is appended to price string if it ends with digits
+        let formattedDetails = rawDetails;
+        if (rawDetails && !rawDetails.toLowerCase().includes("fee")) {
+          formattedDetails = `${rawDetails} fee`;
+        }
+        
+        let timingStr = "";
+        if (r.From !== undefined && r.From !== null && r.From !== "") {
+          if (r.To && r.To !== "0") {
+            timingStr = `${r.From}–${r.To} ${r.Unit ? r.Unit.toLowerCase() : 'days'} left: `;
+          } else {
+            timingStr = `> ${r.From} ${r.Unit ? r.Unit.toLowerCase() : 'days'} left: `;
+          }
+        }
+
+        const formattedRule = formattedDetails ? `${timingStr}${formattedDetails}` : "";
+
+        if (type.includes("cancel") && formattedRule && !cancelList.includes(formattedRule)) {
+          cancelList.push(formattedRule);
+        } else if ((type.includes("reissue") || type.includes("change")) && formattedRule && !changeList.includes(formattedRule)) {
+          changeList.push(formattedRule);
+        }
+      });
+    }
+
+    // 2. Fallback to quoteData.rules (from /flights/fare-rules API) if option has no inline search rules
+    if (cancelList.length === 0 && changeList.length === 0 && quoteData?.rules) {
+      const fareRulesList = Array.isArray(quoteData.rules) ? quoteData.rules : [];
+      fareRulesList.forEach(ruleObj => {
+        const miniRulesObj = ruleObj?.MiniFareRules;
+        const rulesArray = miniRulesObj?.Rules || (Array.isArray(miniRulesObj) ? miniRulesObj.flat() : []);
+        rulesArray.forEach(r => {
+          if (!r || typeof r !== "object") return;
+          const fee = r.PaxPenalties?.[0]?.AirlineFee;
+          if (fee === undefined || fee === null) return;
+
+          let timeText = "";
+          if (r.FromDuration === "P3D") timeText = "> 3 days left";
+          else if (r.FromDuration === "PT3H") timeText = "> 3 hours left";
+          else if (r.FromDuration) timeText = `${r.FromDuration} left`;
+
+          const feeText = fee === 0 ? "Free" : `₹${fee.toLocaleString()} fee`;
+          const ruleStr = timeText ? `${timeText}: ${feeText}` : feeText;
+
+          if (r.Type === 0 && !cancelList.includes(ruleStr)) {
+            cancelList.push(ruleStr);
+          } else if (r.Type === 1 && !changeList.includes(ruleStr)) {
+            changeList.push(ruleStr);
+          }
+        });
+      });
+    }
+
+    // 3. Check PenaltyCharges object if present
+    if (cancelList.length === 0 && opt.PenaltyCharges?.CancellationCharge) {
+      cancelList.push(opt.PenaltyCharges.CancellationCharge.replace(/INR/g, "₹"));
+    }
+    if (changeList.length === 0 && opt.PenaltyCharges?.ReissueCharge) {
+      changeList.push(opt.PenaltyCharges.ReissueCharge.replace(/INR/g, "₹"));
+    }
+
+    return { cancelList, changeList };
   };
 
   // Build dynamic fare list directly from real API fare options if available
@@ -103,7 +174,6 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
     if (Array.isArray(opt.FareInclusions)) {
       opt.FareInclusions.forEach(inc => {
         if (typeof inc === "string" && inc.trim()) {
-          // Handle && delimited string inclusions
           const subItems = inc.split("&&");
           subItems.forEach(item => {
             const trimmed = item.trim();
@@ -115,8 +185,7 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
       });
     }
 
-    const cancelFee = getPenaltyFee(opt.PenaltyCharges?.CancellationCharge || quoteData?.rules?.[0]?.MiniFareRules?.find?.(r => r.Type === "Cancellation")?.Details, "₹3,500 fee");
-    const reissueFee = getPenaltyFee(opt.PenaltyCharges?.ReissueCharge || quoteData?.rules?.[0]?.MiniFareRules?.find?.(r => r.Type === "Reissue")?.Details, "₹3,000 fee");
+    const { cancelList, changeList } = parseFareRules(opt, quoteData);
 
     let badge = null;
     let badgeType = "gray";
@@ -138,8 +207,8 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
       price,
       cabin: cBaggage,
       checkIn: `Check-in: ${chkBaggage}`,
-      cancel: cancelFee,
-      change: reissueFee,
+      cancelList,
+      changeList,
       perks
     };
   });
@@ -252,6 +321,20 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
         {/* 2. FARE SELECTION GRID                                                   */}
         {/* ========================================================================= */}
         <div className="p-5 flex-grow overflow-y-auto bg-gray-50/20 relative">
+          
+          {/* Live Price Change Alert Banner */}
+          {quoteData?.isPriceChanged && (
+            <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[12px] font-bold flex items-center justify-between shadow-2xs animate-fade-in">
+              <div className="flex items-center space-x-2.5">
+                <span className="w-6 h-6 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 text-[12px] flex-shrink-0 font-extrabold">⚡</span>
+                <div>
+                  <p className="font-extrabold text-[#272727] leading-tight">Live Fare Update</p>
+                  <p className="text-amber-800 font-semibold text-[11.5px] mt-0.5">The airline has updated the live fare for this flight. The prices shown below reflect the latest live quote.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <span className="text-[11px] uppercase font-black tracking-widest text-[#7E7E7E] block mb-3.5">
             SELECT A FARE CLASS
           </span>
@@ -310,12 +393,24 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
                         <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cabin: {item.cabin}</p>
                         <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">{item.checkIn}</p>
                         
-                        <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5 pt-2">
-                          <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
-                          <span>Flexibility</span>
-                        </div>
-                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cancel: {item.cancel}</p>
-                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Change: {item.change}</p>
+                        {(item.cancelList?.length > 0 || item.changeList?.length > 0) && (
+                          <div className="pt-2">
+                            <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
+                              <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
+                              <span>Flexibility</span>
+                            </div>
+                            {item.cancelList?.map((cRule, cIdx) => (
+                              <p key={`c-${cIdx}`} className="pl-5 text-[#6B6B6B] font-semibold text-[11.5px]">
+                                Cancel: {cRule}
+                              </p>
+                            ))}
+                            {item.changeList?.map((chRule, chIdx) => (
+                              <p key={`ch-${chIdx}`} className="pl-5 text-[#6B6B6B] font-semibold text-[11.5px]">
+                                Change: {chRule}
+                              </p>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Extra Perks with green checkmarks */}
                         {item.perks.length > 0 && (
