@@ -87,6 +87,7 @@ export default function PopularDestinations() {
             <img
               src={dest.image}
               alt={dest.title}
+              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
             />
             {/* Dark gradient overlay */}

@@ -530,6 +530,13 @@ export default function HeroSection() {
 
   const mergedFrom = fromSearch ? getMergedAirports(filterAirports(fromSearch), fromAirports) : popularAirports;
   const mergedTo = toSearch ? getMergedAirports(filterAirports(toSearch), toAirports) : popularAirports;
+  // Preload tab backgrounds in memory so switching tabs is instant
+  useEffect(() => {
+    Object.values(backgrounds).forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   return (
     <section className="relative h-auto min-h-[640px] lg:h-[700px] flex items-center font-sans bg-gray-100">
@@ -539,6 +546,8 @@ export default function HeroSection() {
         <img
           src={backgrounds[activeTab]}
           alt={`${activeTab} background`}
+          fetchpriority="high"
+          loading="eager"
           className="w-full h-full object-cover object-right transition-all duration-700"
         />
         {/* Subtle overlay for text readability */}
