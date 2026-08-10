@@ -22,7 +22,7 @@ export default function HotelDeals() {
       discount: "30% off",
       price: "₹9,800",
       taxes: "+ ₹1,176 taxes",
-      image: "/assets/home/hotels/images/radisson.png",
+      image: "/assets/home/hotels/images/radisson.webp",
       amenities: ["Pool", "Spa", "Beach", "WiFi", "Bar"]
     },
     {
@@ -34,7 +34,7 @@ export default function HotelDeals() {
       discount: "30% off",
       price: "₹9,800",
       taxes: "+ ₹1,176 taxes",
-      image: "/assets/home/hotels/images/hilton.png",
+      image: "/assets/home/hotels/images/hilton.webp",
       amenities: ["Pool", "Spa", "Beach", "WiFi", "Bar"]
     },
     {
@@ -46,7 +46,7 @@ export default function HotelDeals() {
       discount: "30% off",
       price: "₹9,800",
       taxes: "+ ₹1,176 taxes",
-      image: "/assets/home/hotels/images/park.png",
+      image: "/assets/home/hotels/images/park.webp",
       amenities: ["Pool", "Spa", "Beach", "WiFi", "Bar"]
     },
     {
@@ -58,7 +58,7 @@ export default function HotelDeals() {
       discount: "30% off",
       price: "₹9,800",
       taxes: "+ ₹1,176 taxes",
-      image: "/assets/home/hotels/images/casa.png",
+      image: "/assets/home/hotels/images/casa.webp",
       amenities: ["Pool", "Spa", "Beach", "WiFi", "Bar"]
     }
   ];

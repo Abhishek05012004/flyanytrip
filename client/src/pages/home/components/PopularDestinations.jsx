@@ -16,7 +16,7 @@ export default function PopularDestinations() {
       duration: "3N/4D per person",
       price: "₹8,999",
       tag: "Beach",
-      image: "/assets/home/destinations/images/goa.png",
+      image: "/assets/home/destinations/images/goa.webp",
       span: "md:col-span-1"
     },
     {
@@ -24,7 +24,7 @@ export default function PopularDestinations() {
       duration: "5N/6D per person",
       price: "₹12,499",
       tag: "Hills",
-      image: "/assets/home/destinations/images/manali.png",
+      image: "/assets/home/destinations/images/manali.webp",
       span: "md:col-span-2"
     },
     {
@@ -32,7 +32,7 @@ export default function PopularDestinations() {
       duration: "6N/7D per person",
       price: "₹14,999",
       tag: "Nature",
-      image: "/assets/home/destinations/images/kerala.png",
+      image: "/assets/home/destinations/images/kerala.webp",
       span: "md:col-span-2"
     },
     {
@@ -40,7 +40,7 @@ export default function PopularDestinations() {
       duration: "7N/8D per person",
       price: "₹16,999",
       tag: "Heritage",
-      image: "/assets/home/destinations/images/rajasthan.png",
+      image: "/assets/home/destinations/images/rajasthan.webp",
       span: "md:col-span-2"
     },
     {
@@ -48,7 +48,7 @@ export default function PopularDestinations() {
       duration: "7N/8D per person",
       price: "₹35,999",
       tag: "Intl",
-      image: "/assets/home/destinations/images/dubai.png",
+      image: "/assets/home/destinations/images/dubai.webp",
       span: "md:col-span-2"
     },
     {
@@ -56,7 +56,7 @@ export default function PopularDestinations() {
       duration: "5N/6D per person",
       price: "₹42,999",
       tag: "Intl",
-      image: "/assets/home/destinations/images/bali.png",
+      image: "/assets/home/destinations/images/bali.webp",
       span: "md:col-span-1"
     }
   ];

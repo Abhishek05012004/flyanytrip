@@ -203,7 +203,7 @@ export default function Footer() {
         <div
           className="absolute inset-0 bg-no-repeat opacity-90"
           style={{
-            backgroundImage: "url('/assets/home/footer/images/footer.png')",
+            backgroundImage: "url('/assets/home/footer/images/footer.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center 35%"
           }}

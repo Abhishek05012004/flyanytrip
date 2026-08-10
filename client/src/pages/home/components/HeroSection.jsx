@@ -384,9 +384,9 @@ export default function HeroSection() {
 
   // Dynamic backgrounds mapping
   const backgrounds = {
-    flights: "/assets/home/hero/images/flight-bg.png",
-    hotels: "/assets/home/hero/images/hotel-bg.png",
-    holidays: "/assets/home/hero/images/holiday-bg.png"
+    flights: "/assets/home/hero/images/flight-bg.webp",
+    hotels: "/assets/home/hero/images/hotel-bg.webp",
+    holidays: "/assets/home/hero/images/holiday-bg.webp"
   };
 
   const handleDecrement = (label, currentVal, setVal) => {

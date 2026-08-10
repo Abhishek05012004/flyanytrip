@@ -18,42 +18,42 @@ export default function PopularRoutes() {
       to: "BOM",
       price: "₹3,499",
       tag: "Popular",
-      image: "/assets/home/routes/images/DEL.png"
+      image: "/assets/home/routes/images/DEL.webp"
     },
     {
       from: "BLR",
       to: "GOI",
       price: "₹2,799",
       tag: "Deal",
-      image: "/assets/home/routes/images/BLR.png"
+      image: "/assets/home/routes/images/BLR.webp"
     },
     {
       from: "BOM",
       to: "DXB",
       price: "₹12,799",
       tag: "Intl",
-      image: "/assets/home/routes/images/BOM.png"
+      image: "/assets/home/routes/images/BOM.webp"
     },
     {
       from: "DEL",
       to: "SIN",
       price: "₹8,499",
       tag: "Intl",
-      image: "/assets/home/routes/images/SIN.png"
+      image: "/assets/home/routes/images/SIN.webp"
     },
     {
       from: "HYD",
       to: "BLR",
       price: "₹1,799",
       tag: "Budget",
-      image: "/assets/home/routes/images/HYD.png"
+      image: "/assets/home/routes/images/HYD.webp"
     },
     {
       from: "MAA",
       to: "CCU",
       price: "₹4,799",
       tag: "Route",
-      image: "/assets/home/routes/images/CCU.png"
+      image: "/assets/home/routes/images/CCU.webp"
     }
   ];
 

@@ -46,7 +46,7 @@ export default function AppDownloadBanner() {
 
           {/* Right Column: Wireframe Phone App Mockup */}
           <img 
-            src="/assets/home/app-download/images/mobile.png" 
+            src="/assets/home/app-download/images/mobile.webp" 
             alt="FlyAnyTrip App Mockup" 
             className="absolute right-12 bottom-0 h-[240px] object-contain hidden md:block z-10 select-none" 
           />
