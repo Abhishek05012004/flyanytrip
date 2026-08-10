@@ -506,7 +506,7 @@ export default function ResultPage() {
                 className="absolute"
               >
                 <img
-                  src="/assets/loader/airplane-transparent.png"
+                  src="/assets/loader/airplane-transparent.webp"
                   alt="Loading plane"
                   className="w-40 h-auto object-contain brightness-105"
                   style={{ transform: "rotateY(180deg)" }}
