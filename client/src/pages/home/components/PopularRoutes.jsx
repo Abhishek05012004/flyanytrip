@@ -86,7 +86,6 @@ export default function PopularRoutes() {
                 <img
                   src={route.image}
                   alt={`${route.from} to ${route.to}`}
-                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </div>

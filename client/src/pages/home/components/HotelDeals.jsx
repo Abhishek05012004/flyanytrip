@@ -90,7 +90,6 @@ export default function HotelDeals() {
               <img
                 src={hotel.image}
                 alt={hotel.title}
-                loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
               />
               {/* Luxury dark badge pill */}
