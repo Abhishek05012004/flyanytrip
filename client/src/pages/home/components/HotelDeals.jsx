@@ -162,8 +162,8 @@ export default function HotelDeals() {
 
                 {/* CTA details button */}
                 <button
-                  onClick={() => navigate("/hotels/1")}
-                  className="bg-[#FF2D1A] hover:bg-red-700 text-white text-[13.125px] font-bold font-quicksand py-3 rounded-xl w-full text-center transition-colors shadow-sm"
+                  onClick={() => navigate(`/coming-soon?feature=${encodeURIComponent(hotel.title)}`)}
+                  className="bg-[#FF2D1A] hover:bg-red-700 text-white text-[13.125px] font-bold font-quicksand py-3 rounded-xl w-full text-center transition-colors shadow-sm cursor-pointer"
                 >
                   View Details
                 </button>

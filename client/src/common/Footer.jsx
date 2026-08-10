@@ -80,12 +80,10 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3 text-[16px] font-normal font-inter text-[#949494]">
               <li><Link to="/flights" className="hover:text-white transition-colors">Flights</Link></li>
-              <li><Link to="/hotels" className="hover:text-white transition-colors">Hotels</Link></li>
-              {/* <li><Link to="/trains" className="hover:text-white transition-colors">Trains</Link></li>
-              <li><Link to="/bus" className="hover:text-white transition-colors">Bus Tickets</Link></li> */}
-              <li><Link to="/packages" className="hover:text-white transition-colors">Tour Packages</Link></li>
-              <li><Link to="/cars" className="hover:text-white transition-colors">Car Rentals</Link></li>
-              <li><Link to="/cabs" className="hover:text-white transition-colors">Cab Booking</Link></li>
+              <li><Link to="/coming-soon?feature=Hotels" className="hover:text-white transition-colors">Hotels</Link></li>
+              <li><Link to="/coming-soon?feature=Tour%20Packages" className="hover:text-white transition-colors">Tour Packages</Link></li>
+              <li><Link to="/coming-soon?feature=Car%20Rentals" className="hover:text-white transition-colors">Car Rentals</Link></li>
+              <li><Link to="/coming-soon?feature=Cab%20Booking" className="hover:text-white transition-colors">Cab Booking</Link></li>
             </ul>
           </div>
 
@@ -96,12 +94,11 @@ export default function Footer() {
               <span className="absolute bottom-0 left-0 w-8 h-[2px] bg-[#FF2D1A]"></span>
             </h4>
             <ul className="space-y-3 text-[16px] font-normal font-inter text-[#949494]">
-              <li><Link to="/tours/intl" className="hover:text-white transition-colors">Internationals Tours</Link></li>
-              <li><Link to="/tours/domestic" className="hover:text-white transition-colors">Domestic Tours</Link></li>
-              <li><Link to="/honeymoon" className="hover:text-white transition-colors">Honeymoon</Link></li>
-              <li><Link to="/adventure" className="hover:text-white transition-colors">Adventure</Link></li>
-              <li><Link to="/family" className="hover:text-white transition-colors">Family Holidays</Link></li>
-              {/* <li><Link to="/beach" className="hover:text-white transition-colors">Beach Packages</Link></li> */}
+              <li><Link to="/coming-soon?feature=International%20Tours" className="hover:text-white transition-colors">Internationals Tours</Link></li>
+              <li><Link to="/coming-soon?feature=Domestic%20Tours" className="hover:text-white transition-colors">Domestic Tours</Link></li>
+              <li><Link to="/coming-soon?feature=Honeymoon%20Packages" className="hover:text-white transition-colors">Honeymoon</Link></li>
+              <li><Link to="/coming-soon?feature=Adventure%20Tours" className="hover:text-white transition-colors">Adventure</Link></li>
+              <li><Link to="/coming-soon?feature=Family%20Holidays" className="hover:text-white transition-colors">Family Holidays</Link></li>
             </ul>
           </div>
 
@@ -112,12 +109,11 @@ export default function Footer() {
               <span className="absolute bottom-0 left-0 w-8 h-[2px] bg-[#FF2D1A]"></span>
             </h4>
             <ul className="space-y-3 text-[16px] font-normal font-inter text-[#949494]">
-              <li><Link to="/support" className="hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
-              <li><Link to="/refunds" className="hover:text-white transition-colors">Refund Policy</Link></li>
-              <li><Link to="/cancel" className="hover:text-white transition-colors">Cancel Booking</Link></li>
-              <li><Link to="/pnr" className="hover:text-white transition-colors">PNR Status</Link></li>
-              {/* <li><Link to="/faq" className="hover:text-white transition-colors">FAQ's</Link></li> */}
+              <li><Link to="/coming-soon?feature=Help%20Center" className="hover:text-white transition-colors">Help Center</Link></li>
+              <li><Link to="/coming-soon?feature=Contact%20Us" className="hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link to="/coming-soon?feature=Refund%20Policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
+              <li><Link to="/coming-soon?feature=Cancel%20Booking" className="hover:text-white transition-colors">Cancel Booking</Link></li>
+              <li><Link to="/coming-soon?feature=PNR%20Status" className="hover:text-white transition-colors">PNR Status</Link></li>
             </ul>
           </div>
 
@@ -128,12 +124,11 @@ export default function Footer() {
               <span className="absolute bottom-0 left-0 w-8 h-[2px] bg-[#FF2D1A]"></span>
             </h4>
             <ul className="space-y-3 text-[16px] font-normal font-inter text-[#949494]">
-              <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/careers" className="hover:text-white transition-colors">Careers</Link></li>
-              {/* <li><Link to="/press" className="hover:text-white transition-colors">Press</Link></li> */}
-              <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
-              <li><Link to="/partners" className="hover:text-white transition-colors">Partners</Link></li>
-              <li><Link to="/investors" className="hover:text-white transition-colors">Investors</Link></li>
+              <li><Link to="/coming-soon?feature=About%20Us" className="hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/coming-soon?feature=Careers" className="hover:text-white transition-colors">Careers</Link></li>
+              <li><Link to="/coming-soon?feature=Blog" className="hover:text-white transition-colors">Blog</Link></li>
+              <li><Link to="/coming-soon?feature=Partners" className="hover:text-white transition-colors">Partners</Link></li>
+              <li><Link to="/coming-soon?feature=Investors" className="hover:text-white transition-colors">Investors</Link></li>
             </ul>
           </div>
 

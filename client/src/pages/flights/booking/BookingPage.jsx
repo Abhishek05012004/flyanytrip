@@ -112,7 +112,12 @@ export default function BookingPage() {
               arrTime: formatTime(lLeg.Destination?.ArrTime),
               fromCode: fLeg.Origin?.AirportCode || searchParams.get("from") || "DEL",
               toCode: lLeg.Destination?.AirportCode || searchParams.get("to") || "BOM",
-              duration: `${Math.floor((fLeg.Duration || 120) / 60)}h ${(fLeg.Duration || 120) % 60}m`,
+              duration: (() => {
+                const totalMins = fLeg.Duration || 120;
+                const h = Math.floor(totalMins / 60);
+                const m = totalMins % 60;
+                return m === 0 ? `${h}h` : `${h}h ${m}m`;
+              })(),
               stops: segs.length === 1 ? "Non-stop" : `${segs.length - 1} Stop`,
               price: `₹${Math.round(priceVal).toLocaleString()}`,
               rawOption: opt

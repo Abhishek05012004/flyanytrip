@@ -565,7 +565,7 @@ export default function HeroSection() {
               {[
                 { id: "flights", label: "Flights", iconPath: "/assets/home/hero/icons/flight.svg", sizeClass: "h-[20px] w-auto" },
                 { id: "hotels", label: "Hotels", iconPath: "/assets/home/hero/icons/hotel.svg", sizeClass: "h-[20px] w-auto" },
-                { id: "holidays", label: "Holiday", iconPath: "/assets/home/hero/icons/holiday.svg", sizeClass: "h-[24px] w-auto" },
+                { id: "holidays", label: "Holidays", iconPath: "/assets/home/hero/icons/holiday.svg", sizeClass: "h-[24px] w-auto" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1088,7 +1088,7 @@ export default function HeroSection() {
                   </div>
 
                   <button
-                    onClick={handleSearch}
+                    onClick={() => navigate("/coming-soon?feature=Hotels")}
                     className="font-poppins font-semibold text-[15px] rounded-xl shadow-md transition-colors flex items-center justify-center space-x-2.5 w-full cursor-pointer h-full min-h-[72px] bg-[#FF2D1A] hover:bg-red-700 text-white hover:shadow-red-500/10 active:scale-95"
                   >
                     <img src="/assets/home/hero/icons/search.svg" alt="Search" className="w-5 h-5 brightness-0 invert" />
@@ -1170,7 +1170,7 @@ export default function HeroSection() {
                   </div>
 
                   <button
-                    onClick={handleSearch}
+                    onClick={() => navigate("/coming-soon?feature=Holidays")}
                     className="font-poppins font-semibold text-[15px] rounded-xl shadow-md transition-colors flex items-center justify-center space-x-2.5 w-full cursor-pointer h-full min-h-[72px] bg-[#FF2D1A] hover:bg-red-700 text-white hover:shadow-red-500/10 active:scale-95"
                   >
                     <img src="/assets/home/hero/icons/search.svg" alt="Search" className="w-5 h-5 brightness-0 invert" />

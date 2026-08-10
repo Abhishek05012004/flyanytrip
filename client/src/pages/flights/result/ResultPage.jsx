@@ -307,6 +307,8 @@ export default function ResultPage() {
             const formatDuration = (mins) => {
               const h = Math.floor(mins / 60);
               const m = mins % 60;
+              if (h > 0 && m === 0) return `${h}h`;
+              if (h === 0) return `${m}m`;
               return `${h}h ${m}m`;
             };
 

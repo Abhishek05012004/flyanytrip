@@ -1,57 +1,46 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/home/HomePage";
 import FlightsResultPage from "./pages/flights/result/ResultPage";
 import FlightBookingPage from "./pages/flights/booking/BookingPage";
-import HotelsResultPage from "./pages/hotels/HotelsResultPage";
-import HotelDetailsPage from "./pages/hotels/HotelDetailsPage";
-import HotelBookingPage from "./pages/hotels/HotelBookingPage";
-import PackagesResultPage from "./pages/packages/PackagesResultPage";
-import PackageDetailsPage from "./pages/packages/PackageDetailsPage";
-import PackageBookingPage from "./pages/packages/PackageBookingPage";
-import VisaRedirectPage from "./pages/visa/VisaRedirectPage";
 import PaymentPage from "./common/PaymentPage";
 import FlightBookingSuccessPage from "./pages/flights/booking/FlightBookingSuccessPage";
-import HotelBookingSuccessPage from "./pages/hotels/HotelBookingSuccessPage";
-import PackageBookingSuccessPage from "./pages/packages/PackageBookingSuccessPage";
 import BookingFailurePage from "./common/BookingFailurePage";
-import LoginPage from "./pages/auth/LoginPage";
-import UserDashboardPage from "./pages/dashboard/UserDashboardPage";
+import ComingSoonPage from "./pages/coming-soon/ComingSoonPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* HomePage (includes its header & footer) */}
+        {/* HomePage (includes header, flight search, hero, cards & footer) */}
         <Route path="/" element={<HomePage />} />
         
-        {/* Flights module routes */}
+        {/* Active Flights module routes */}
         <Route path="/flights" element={<FlightsResultPage />} />
         <Route path="/flights/book" element={<FlightBookingPage />} />
-        
-        {/* Hotels module routes */}
-        <Route path="/hotels" element={<HotelsResultPage />} />
-        <Route path="/hotels/:id" element={<HotelDetailsPage />} />
-        <Route path="/hotels/book" element={<HotelBookingPage />} />
-        
-        {/* Tour Packages module routes */}
-        <Route path="/packages" element={<PackagesResultPage />} />
-        <Route path="/packages/:id" element={<PackageDetailsPage />} />
-        <Route path="/packages/book" element={<PackageBookingPage />} />
-        
-        {/* Visa redirect page */}
-        <Route path="/visa" element={<VisaRedirectPage />} />
-
-        {/* Global checkout gateway, success & failure status pages */}
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/flights/booking-success" element={<FlightBookingSuccessPage />} />
-        <Route path="/hotels/booking-success" element={<HotelBookingSuccessPage />} />
-        <Route path="/packages/booking-success" element={<PackageBookingSuccessPage />} />
         <Route path="/booking-failure" element={<BookingFailurePage />} />
 
-        {/* Auth & Dashboard */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<UserDashboardPage />} />
+        {/* Dedicated Coming Soon Route */}
+        <Route path="/coming-soon" element={<ComingSoonPage />} />
+
+        {/* Incomplete module routes redirected to Coming Soon */}
+        <Route path="/hotels" element={<Navigate to="/coming-soon?feature=Hotels" replace />} />
+        <Route path="/hotels/*" element={<Navigate to="/coming-soon?feature=Hotels" replace />} />
+        
+        <Route path="/packages" element={<Navigate to="/coming-soon?feature=Holidays%20%26%20Packages" replace />} />
+        <Route path="/packages/*" element={<Navigate to="/coming-soon?feature=Holidays%20%26%20Packages" replace />} />
+        <Route path="/holidays" element={<Navigate to="/coming-soon?feature=Holidays" replace />} />
+        <Route path="/holidays/*" element={<Navigate to="/coming-soon?feature=Holidays" replace />} />
+        
+        <Route path="/visa" element={<Navigate to="/coming-soon?feature=Visa%20Services" replace />} />
+        <Route path="/login" element={<Navigate to="/coming-soon?feature=User%20Login" replace />} />
+        <Route path="/signup" element={<Navigate to="/coming-soon?feature=User%20Registration" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/coming-soon?feature=User%20Dashboard" replace />} />
+        
+        {/* Catch-all route for any other unhandled paths */}
+        <Route path="*" element={<Navigate to="/coming-soon?feature=Page" replace />} />
       </Routes>
     </BrowserRouter>
   );

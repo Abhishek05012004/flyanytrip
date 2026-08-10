@@ -78,8 +78,9 @@ export default function PopularDestinations() {
       {/* Asymmetric 5-Column Grid */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {destinations.map((dest, i) => (
-          <div
+          <Link
             key={i}
+            to={`/coming-soon?feature=${encodeURIComponent(dest.title + " Holiday Package")}`}
             className={`relative h-64 rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-gray-200/40 ${dest.span}`}
           >
             {/* Background Image */}
@@ -109,7 +110,7 @@ export default function PopularDestinations() {
               </div>
 
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

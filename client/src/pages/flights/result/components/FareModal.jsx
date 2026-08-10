@@ -1,12 +1,5 @@
-/**
- * ============================================================================
- * PATH: client/src/pages/flights/result/components/FareModal.jsx
- * DESCRIPTION: Premium fare selection popup overlay card.
- * ============================================================================
- */
-
-import React, { useState, useEffect } from "react";
-import { X, Calendar, User, Plane, Clock, ShieldCheck, Tag, Backpack, Briefcase, ChevronRight, Building, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Calendar, User, Plane, Clock, ShieldCheck, Tag, Backpack, Briefcase, ChevronRight, ChevronLeft, Building, Loader2 } from "lucide-react";
 import axios from "axios";
 
 export default function FareModal({ flight, traceId, onClose, onContinue }) {
@@ -18,6 +11,10 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
 
   // Selected fare class state: 'saver', 'value', 'flexi'
   const [selectedFare, setSelectedFare] = useState("saver");
+
+  const scrollContainerRef = useRef(null);
+  const [showRightScroll, setShowRightScroll] = useState(false);
+  const [showLeftScroll, setShowLeftScroll] = useState(false);
 
   // Fetch live Fare Quote & Rules from API on mount
   useEffect(() => {
@@ -150,6 +147,33 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
   const [selectedFareIdx, setSelectedFareIdx] = useState(0);
   const currentFare = dynamicFares[selectedFareIdx] || dynamicFares[0];
 
+  // Handle scroll detection
+  const checkScrollState = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftScroll(scrollLeft > 5);
+      setShowRightScroll(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollState();
+    window.addEventListener("resize", checkScrollState);
+    return () => window.removeEventListener("resize", checkScrollState);
+  }, [dynamicFares]);
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      // Scroll by 3 card widths + gaps
+      scrollContainerRef.current.scrollBy({ left: scrollContainerRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -scrollContainerRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs font-inter p-4">
@@ -227,94 +251,124 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
         {/* ========================================================================= */}
         {/* 2. FARE SELECTION GRID                                                   */}
         {/* ========================================================================= */}
-        <div className="p-5 flex-grow overflow-y-auto bg-gray-50/20">
+        <div className="p-5 flex-grow overflow-y-auto bg-gray-50/20 relative">
           <span className="text-[11px] uppercase font-black tracking-widest text-[#7E7E7E] block mb-3.5">
             SELECT A FARE CLASS
           </span>
 
-          <div className={`grid grid-cols-1 ${dynamicFares.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : dynamicFares.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'} gap-4`}>
-            {dynamicFares.map((item, idx) => {
-              const isSelected = selectedFareIdx === idx;
+          <div className="relative">
+            {/* Scroll Container */}
+            <div 
+              ref={scrollContainerRef}
+              onScroll={checkScrollState}
+              className="flex gap-4 overflow-x-auto scrollbar-none scroll-smooth pb-2 pt-1 px-0.5"
+            >
+              {dynamicFares.map((item, idx) => {
+                const isSelected = selectedFareIdx === idx;
 
-              return (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedFareIdx(idx)}
-                  className={`border rounded-xl p-4.5 cursor-pointer transition-all flex flex-col justify-between relative min-h-[290px] select-none hover:shadow-2xs ${
-                    isSelected 
-                      ? "bg-[#FFF9F8] border-[#FF2D1A] ring-1 ring-[#FF2D1A] shadow-3xs" 
-                      : "bg-white border-[#EAEAEA] hover:border-gray-300"
-                  }`}
-                >
-                  
-                  {/* Card Header details */}
-                  <div>
-                    {/* Top Row: Radio selector & Price side-by-side with 'per adult' */}
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#EAEAEA]">
-                      <div className="flex items-center space-x-2.5">
-                        {/* Concentric Circle Radio Selector */}
-                        {isSelected ? (
-                          <span className="w-[18px] h-[18px] rounded-full border-2 border-[#FF2D1A] flex items-center justify-center bg-white flex-shrink-0">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#FF2D1A]"></span>
-                          </span>
-                        ) : (
-                          <span className="w-[18px] h-[18px] rounded-full border border-gray-300 flex-shrink-0 bg-white"></span>
-                        )}
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedFareIdx(idx)}
+                    className={`border-2 rounded-xl p-4.5 cursor-pointer transition-all flex flex-col justify-between relative min-h-[290px] w-[calc((100%-32px)/3)] flex-shrink-0 select-none box-border ${
+                      isSelected 
+                        ? "bg-[#FFF9F8] border-[#FF2D1A] shadow-sm" 
+                        : "bg-white border-[#EAEAEA] hover:border-gray-300"
+                    }`}
+                  >
+                    
+                    {/* Card Header details */}
+                    <div>
+                      {/* Top Row: Radio selector & Price side-by-side with 'per adult' */}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#EAEAEA]">
+                        <div className="flex items-center space-x-2.5">
+                          {/* Concentric Circle Radio Selector */}
+                          {isSelected ? (
+                            <span className="w-[18px] h-[18px] rounded-full border-2 border-[#FF2D1A] flex items-center justify-center bg-white flex-shrink-0">
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#FF2D1A]"></span>
+                            </span>
+                          ) : (
+                            <span className="w-[18px] h-[18px] rounded-full border border-gray-300 flex-shrink-0 bg-white"></span>
+                          )}
 
-                        <div className="flex items-baseline space-x-1.5">
-                          <span className="text-[20px] font-black text-[#272727]">₹{item.price.toLocaleString()}</span>
-                          <span className="text-[11px] text-[#7E7E7E] font-bold">per adult</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Fare Class Name */}
-                    <h4 className="font-black text-[13px] text-[#7E7E7E] uppercase tracking-wider mb-3.5">{item.title}</h4>
-
-                    {/* Features checklist */}
-                    <div className="space-y-2 text-[11px] font-bold">
-                      <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
-                        <Backpack className="w-3.5 h-3.5 text-[#7E7E7E]" />
-                        <span>Baggage</span>
-                      </div>
-                      <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cabin: {item.cabin}</p>
-                      <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">{item.checkIn}</p>
-                      
-                      <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5 pt-2">
-                        <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
-                        <span>Flexibility</span>
-                      </div>
-                      <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cancel: {item.cancel}</p>
-                      <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Change: {item.change}</p>
-
-                      {/* Extra Perks with green checkmarks */}
-                      {item.perks.length > 0 && (
-                        <div className="pt-2">
-                          <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
-                            <Tag className="w-3.5 h-3.5 text-[#7E7E7E]" />
-                            <span>Included Perks</span>
+                          <div className="flex items-baseline space-x-1.5">
+                            <span className="text-[20px] font-black text-[#272727]">₹{item.price.toLocaleString()}</span>
+                            <span className="text-[11px] text-[#7E7E7E] font-bold">per adult</span>
                           </div>
-                          {item.perks.map((perk, pIdx) => (
-                            <div key={pIdx} className="flex items-center space-x-1.5 text-[#00A852] pl-5 pt-1">
-                              <svg className="w-3 h-3 text-[#00A852] stroke-[3.5] fill-none" viewBox="0 0 24 24" stroke="currentColor">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                              <span className="font-bold text-[11.5px]">{perk}</span>
-                            </div>
-                          ))}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                </div>
-              );
-            })}
+                      {/* Fare Class Name */}
+                      <h4 className="font-black text-[13px] text-[#7E7E7E] uppercase tracking-wider mb-3.5">{item.title}</h4>
+
+                      {/* Features checklist */}
+                      <div className="space-y-2 text-[11px] font-bold">
+                        <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
+                          <Backpack className="w-3.5 h-3.5 text-[#7E7E7E]" />
+                          <span>Baggage</span>
+                        </div>
+                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cabin: {item.cabin}</p>
+                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">{item.checkIn}</p>
+                        
+                        <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5 pt-2">
+                          <Briefcase className="w-3.5 h-3.5 text-[#7E7E7E]" />
+                          <span>Flexibility</span>
+                        </div>
+                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cancel: {item.cancel}</p>
+                        <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Change: {item.change}</p>
+
+                        {/* Extra Perks with green checkmarks */}
+                        {item.perks.length > 0 && (
+                          <div className="pt-2">
+                            <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
+                              <Tag className="w-3.5 h-3.5 text-[#7E7E7E]" />
+                              <span>Included Perks</span>
+                            </div>
+                            {item.perks.map((perk, pIdx) => (
+                              <div key={pIdx} className="flex items-center space-x-1.5 text-[#00A852] pl-5 pt-1">
+                                <svg className="w-3 h-3 text-[#00A852] stroke-[3.5] fill-none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span className="font-bold text-[11.5px]">{perk}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Left Scroll Button */}
+            {showLeftScroll && (
+              <button
+                onClick={handleScrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-30 w-10 h-10 rounded-full bg-white border border-[#008cff]/40 text-[#008cff] shadow-xl flex items-center justify-center hover:bg-[#008cff] hover:text-white transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* Right Scroll Arrow Button */}
+            {showRightScroll && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-30 flex items-center justify-end group">
+                <button
+                  onClick={handleScrollRight}
+                  className="flex items-center justify-center bg-white border border-[#008cff]/40 text-[#008cff] rounded-full shadow-xl h-10 px-2.5 hover:px-3.5 hover:bg-[#008cff] hover:text-white transition-all duration-300 ease-out cursor-pointer whitespace-nowrap"
+                >
+                  <span className="max-w-0 opacity-0 overflow-hidden text-[12px] font-bold transition-all duration-300 ease-out group-hover:max-w-[160px] group-hover:opacity-100 group-hover:mr-1.5">
+                    More fares available
+                  </span>
+                  <ChevronRight className="w-5 h-5 flex-shrink-0" />
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
-
-
 
         {/* ========================================================================= */}
         {/* 4. MODAL ACTION FOOTER                                                    */}
@@ -338,3 +392,4 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
     </div>
   );
 }
+
