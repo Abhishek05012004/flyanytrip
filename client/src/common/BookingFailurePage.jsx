@@ -91,9 +91,9 @@ export default function BookingFailurePage() {
               Payment Failed
             </h1>
 
-            {/* Subtitle / Custom Error Message */}
-            <p className="text-[15px] font-medium opacity-90 mt-[7.5px] mb-[22.5px] leading-[22.5px] max-w-[480px]">
-              {location.state?.errorMessage || "The transaction was declined by your banking provider or timed out. Don't worry, if any money was deducted it will be refunded within 3-5 business days."}
+            {/* Subtitle */}
+            <p className="text-[15px] font-medium opacity-90 mt-[7.5px] mb-[22.5px] leading-[22.5px] max-w-[450px]">
+              The transaction was declined by your banking provider or timed out. Don't worry, if any money was deducted it will be refunded within 3-5 business days.
             </p>
 
             {/* Reference info */}

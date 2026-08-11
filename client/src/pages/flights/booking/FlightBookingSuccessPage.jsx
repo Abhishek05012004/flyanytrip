@@ -130,14 +130,14 @@ export default function FlightBookingSuccessPage() {
         <section className="w-full bg-gradient-to-br from-[#155DFC] to-[#193CB8] rounded-[22.5px] p-[37.5px] text-white flex flex-col items-center justify-center relative overflow-hidden shadow-xs min-h-[358px]">
           {/* Background Image: Flight Attendant (Left) */}
           <img
-            src="/assets/booking/flight_attendant.webp"
+            src="/assets/booking/flight_attendant.png"
             alt="Flight Attendant"
             className="absolute left-0 bottom-0 h-full w-auto object-contain pointer-events-none opacity-20 sm:opacity-40 lg:opacity-100 z-0 select-none"
           />
 
           {/* Background Image: Airplane Flying (Right) */}
           <img
-            src="/assets/booking/airplane_flying.webp"
+            src="/assets/booking/airplane_flying.png"
             alt="Airplane Flying"
             className="absolute right-0 bottom-0 h-[60%] sm:h-[80%] lg:h-full w-auto object-contain pointer-events-none opacity-30 sm:opacity-50 lg:opacity-100 z-0 select-none"
           />

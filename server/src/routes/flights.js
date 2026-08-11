@@ -1,5 +1,4 @@
 import express from "express";
-import prisma from "../config/db.js";
 import {
   getFlightLocationsAPI,
   searchFlightsAPI,
@@ -173,114 +172,11 @@ router.post("/ssr", async (req, res, next) => {
   }
 });
 
-// Helper to save booking record to database
-const saveBookingToDatabase = async (bookingDetails) => {
-  try {
-    const {
-      bookingId,
-      pnr,
-      traceId,
-      isLCC,
-      paymentId,
-      flightInfo = {},
-      financials = {},
-      passengers = [],
-      addons = null,
-      rawResponse = null,
-      userEmail = null
-    } = bookingDetails;
-
-    let userId = null;
-    if (userEmail) {
-      // Find or create user
-      const user = await prisma.user.upsert({
-        where: { email: userEmail },
-        update: {},
-        create: {
-          email: userEmail,
-          name: passengers[0] ? `${passengers[0].FirstName || ''} ${passengers[0].LastName || ''}`.trim() : "Traveler"
-        }
-      });
-      userId = user.id;
-    }
-
-    const saved = await prisma.booking.upsert({
-      where: { bookingId: String(bookingId) },
-      update: {
-        pnr: pnr ? String(pnr) : undefined,
-        status: "CONFIRMED",
-        paymentStatus: "COMPLETED",
-        paymentId: paymentId ? String(paymentId) : undefined,
-        rawResponse: rawResponse || undefined
-      },
-      create: {
-        bookingId: String(bookingId),
-        pnr: pnr ? String(pnr) : null,
-        traceId: traceId ? String(traceId) : null,
-        type: "FLIGHT",
-        isLCC: !!isLCC,
-        status: "CONFIRMED",
-        paymentStatus: "COMPLETED",
-        paymentId: paymentId ? String(paymentId) : null,
-        airlineName: flightInfo.airlineName || "Flight Provider",
-        airlineCode: flightInfo.airlineCode || null,
-        flightNumber: flightInfo.flightNumber || null,
-        origin: flightInfo.origin || "DEL",
-        destination: flightInfo.destination || "BOM",
-        departureTime: flightInfo.departureTime ? new Date(flightInfo.departureTime) : null,
-        arrivalTime: flightInfo.arrivalTime ? new Date(flightInfo.arrivalTime) : null,
-        cabinClass: flightInfo.cabinClass || "Economy",
-        basePrice: parseFloat(financials.basePrice || 0),
-        taxes: parseFloat(financials.taxes || 0),
-        totalAmount: parseFloat(financials.totalAmount || 0),
-        currency: "INR",
-        userId,
-        passengers: passengers || [],
-        addons: addons || null,
-        rawResponse: rawResponse || null
-      }
-    });
-    console.log(`[DB] Flight Booking successfully stored in database with ID: ${saved.id}`);
-    return saved;
-  } catch (err) {
-    console.error("[DB Error] Failed to persist flight booking:", err);
-    return null;
-  }
-};
-
 // LCC Ticket Booking
 router.post("/book-lcc", async (req, res, next) => {
   try {
-    const { bookingPayload, meta } = req.body;
-    // Accept either direct Adivaha payload or wrapped payload with metadata
-    const providerPayload = bookingPayload || req.body;
-    const data = await bookLCCTicketAPI(providerPayload);
-
-    const providerResp = data?.responseData?.Response;
-    const pnr = providerResp?.PNR || providerResp?.B2B2CPNR || meta?.pnr || ("FLY" + Math.random().toString(36).substring(2, 8).toUpperCase());
-    const bookingId = providerResp?.BookingId || meta?.bookingId || ("BK" + Date.now());
-
-    // Save to Database
-    const dbRecord = await saveBookingToDatabase({
-      bookingId,
-      pnr,
-      traceId: providerPayload.TraceId || meta?.traceId,
-      isLCC: true,
-      paymentId: meta?.paymentId,
-      flightInfo: meta?.flightInfo,
-      financials: meta?.financials,
-      passengers: providerPayload.Passengers || meta?.passengers,
-      addons: meta?.addons,
-      rawResponse: data,
-      userEmail: meta?.userEmail || providerPayload.Passengers?.[0]?.Email
-    });
-
-    res.json({
-      ...data,
-      dbBookingId: dbRecord?.id,
-      pnr,
-      bookingId
-    });
+    const data = await bookLCCTicketAPI(req.body);
+    res.json(data);
   } catch (error) {
     next(error);
   }
@@ -289,35 +185,8 @@ router.post("/book-lcc", async (req, res, next) => {
 // Non-LCC Flight Book (Hold)
 router.post("/book-non-lcc", async (req, res, next) => {
   try {
-    const { bookingPayload, meta } = req.body;
-    const providerPayload = bookingPayload || req.body;
-    const data = await bookNonLCCAPI(providerPayload);
-
-    const providerResp = data?.responseData?.Response;
-    const pnr = providerResp?.PNR || providerResp?.B2B2CPNR || meta?.pnr || ("FLY" + Math.random().toString(36).substring(2, 8).toUpperCase());
-    const bookingId = providerResp?.BookingId || meta?.bookingId || ("BK" + Date.now());
-
-    // Save initial hold booking to Database
-    const dbRecord = await saveBookingToDatabase({
-      bookingId,
-      pnr,
-      traceId: providerPayload.TraceId || meta?.traceId,
-      isLCC: false,
-      paymentId: meta?.paymentId,
-      flightInfo: meta?.flightInfo,
-      financials: meta?.financials,
-      passengers: providerPayload.Passengers || meta?.passengers,
-      addons: meta?.addons,
-      rawResponse: data,
-      userEmail: meta?.userEmail || providerPayload.Passengers?.[0]?.Email
-    });
-
-    res.json({
-      ...data,
-      dbBookingId: dbRecord?.id,
-      pnr,
-      bookingId
-    });
+    const data = await bookNonLCCAPI(req.body);
+    res.json(data);
   } catch (error) {
     next(error);
   }
@@ -327,37 +196,7 @@ router.post("/book-non-lcc", async (req, res, next) => {
 router.post("/issue-ticket", async (req, res, next) => {
   try {
     const data = await issueNonLCCTicketAPI(req.body);
-    const providerResp = data?.responseData?.Response;
-    if (providerResp && req.body.BookingId) {
-      await saveBookingToDatabase({
-        bookingId: req.body.BookingId,
-        pnr: providerResp.PNR || req.body.PNR,
-        rawResponse: data
-      });
-    }
     res.json(data);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Fetch user bookings from Database
-router.get("/my-bookings", async (req, res, next) => {
-  try {
-    const { email } = req.query;
-    let bookings = [];
-    if (email) {
-      bookings = await prisma.booking.findMany({
-        where: { user: { email } },
-        orderBy: { createdAt: "desc" }
-      });
-    } else {
-      bookings = await prisma.booking.findMany({
-        take: 20,
-        orderBy: { createdAt: "desc" }
-      });
-    }
-    res.json({ success: true, bookings });
   } catch (error) {
     next(error);
   }
@@ -397,12 +236,6 @@ router.post("/cancellation-charges", async (req, res, next) => {
 router.post("/cancel-booking", async (req, res, next) => {
   try {
     const data = await cancelBookingAPI(req.body);
-    if (req.body.BookingId) {
-      await prisma.booking.updateMany({
-        where: { bookingId: String(req.body.BookingId) },
-        data: { status: "CANCELLED" }
-      });
-    }
     res.json(data);
   } catch (error) {
     next(error);

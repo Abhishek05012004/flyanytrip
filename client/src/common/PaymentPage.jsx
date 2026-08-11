@@ -196,15 +196,13 @@ export default function PaymentPage() {
     });
   };
 
-  const processBookingAfterPayment = async (paymentId) => {
+  const processBookingAfterPayment = async (paymentId = "") => {
     try {
       setIsProcessing(true);
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
       const traceId = location.state?.traceId || location.state?.flight?.rawOption?.TraceId;
       const resultIndex = location.state?.resultIndex || location.state?.flight?.rawOption?.ResultIndex;
       const isLCC = location.state?.flight?.rawOption?.IsLCC !== false;
-
-      const userEmail = location.state?.email || "user@flyanytrip.com";
 
       const bookingPayload = {
         ResultIndex: resultIndex,
@@ -225,66 +223,36 @@ export default function PaymentPage() {
             CountryCode: "IN",
             CountryName: "India",
             ContactNo: "9876543210",
-            Email: userEmail,
+            Email: location.state?.email || "user@flyanytrip.com",
             IsLeadPax: true
           }
         ]
-      };
-
-      const meta = {
-        traceId,
-        paymentId: paymentId || "pay_" + Math.random().toString(36).substring(2, 10),
-        userEmail,
-        flightInfo: {
-          airlineName: flight.airline,
-          airlineCode: flight.code?.split("-")[0] || "6E",
-          flightNumber: flight.code?.split("-")[1] || "204",
-          origin: flight.fromCode || flight.route?.split("→")[0]?.trim() || "DEL",
-          destination: flight.toCode || flight.route?.split("→")[1]?.trim() || "BOM",
-          departureTime: flight.rawOption?.Segments?.[0]?.[0]?.Origin?.DepTime,
-          arrivalTime: flight.rawOption?.Segments?.[0]?.[0]?.Destination?.ArrTime,
-          cabinClass: flight.class || "Economy"
-        },
-        financials: {
-          basePrice,
-          taxes,
-          totalAmount
-        },
-        addons: location.state?.addonsData || null
       };
 
       let finalPNR = "";
       let finalBookingId = "";
       let apiBookingData = null;
 
-      const endpoint = isLCC ? `${API_BASE_URL}/flights/book-lcc` : `${API_BASE_URL}/flights/book-non-lcc`;
-      const bookingRes = await axios.post(endpoint, { bookingPayload, meta }).catch(err => {
-        console.warn("Flight Booking API notice:", err.response?.data || err.message);
-        return null;
-      });
-
-      apiBookingData = bookingRes?.data?.responseData?.Response || bookingRes?.data?.responseData || null;
-      
-      // Check if Adivaha returned a provider error (e.g. Status: 7605 "Sorry fare is not available. Please try with new fare")
-      const rawStatus = bookingRes?.data?.Status || apiBookingData?.Status || apiBookingData?.Error?.ErrorCode;
-      const statusMsg = bookingRes?.data?.status_message || apiBookingData?.status_message || apiBookingData?.Error?.ErrorMessage;
-      
-      if (rawStatus === 7605 || (rawStatus && rawStatus !== 0 && rawStatus !== 1)) {
-        console.warn("[Booking API Error]", { rawStatus, statusMsg });
-        routerNavigate("/booking-failure", {
-          state: {
-            ...location.state,
-            errorMessage: statusMsg || "Sorry, this flight fare is no longer available. Please search again for updated fares."
-          }
+      if (isLCC) {
+        // LCC FLIGHT FLOW (Single Step Ticket Issuance: LCCFlightTicket)
+        const bookingRes = await axios.post(`${API_BASE_URL}/flights/book-lcc`, bookingPayload).catch(err => {
+          console.warn("LCC Booking API notice:", err.response?.data || err.message);
+          return null;
         });
-        return;
-      }
+        apiBookingData = bookingRes?.data?.responseData?.Response || null;
+        finalPNR = apiBookingData?.PNR || apiBookingData?.B2B2CPNR || "FLY" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        finalBookingId = apiBookingData?.BookingId || "BK" + Date.now();
+      } else {
+        // NON-LCC FLIGHT FLOW (2-Step Flow: Step 1 Hold Reservation -> Step 2 Ticket Issue)
+        const holdRes = await axios.post(`${API_BASE_URL}/flights/book-non-lcc`, bookingPayload).catch(err => {
+          console.warn("Non-LCC Hold Booking API notice:", err.response?.data || err.message);
+          return null;
+        });
 
-      finalPNR = bookingRes?.data?.pnr || apiBookingData?.PNR || apiBookingData?.B2B2CPNR || "FLY" + Math.random().toString(36).substring(2, 8).toUpperCase();
-      finalBookingId = bookingRes?.data?.bookingId || apiBookingData?.BookingId || "BK" + Date.now();
+        const holdData = holdRes?.data?.responseData?.Response || null;
+        finalPNR = holdData?.PNR || holdData?.B2B2CPNR || "FLY" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        finalBookingId = holdData?.BookingId || "BK" + Date.now();
 
-      if (!isLCC) {
-        // Step 2 for Non-LCC: Ticket Issue
         const issueRes = await axios.post(`${API_BASE_URL}/flights/issue-ticket`, {
           PNR: finalPNR,
           BookingId: finalBookingId,
@@ -296,6 +264,8 @@ export default function PaymentPage() {
 
         if (issueRes?.data?.responseData?.Response) {
           apiBookingData = issueRes.data.responseData.Response;
+        } else {
+          apiBookingData = holdData;
         }
       }
 
@@ -304,7 +274,7 @@ export default function PaymentPage() {
           ...location.state,
           pnr: finalPNR,
           bookingId: finalBookingId,
-          paymentId: meta.paymentId,
+          paymentId: paymentId || "pay_" + Math.random().toString(36).substring(2, 10),
           apiBookingResponse: apiBookingData,
           isLCC
         }
