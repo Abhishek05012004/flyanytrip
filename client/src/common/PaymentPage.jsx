@@ -482,8 +482,8 @@ export default function PaymentPage() {
               type="button"
               onClick={() => setPaymentOutcome("success")}
               className={`flex-1 py-3 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentOutcome === "success"
-                  ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-3xs"
-                  : "border-gray-200 text-gray-500 hover:bg-gray-50 bg-white"
+                ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-3xs"
+                : "border-gray-200 text-gray-500 hover:bg-gray-50 bg-white"
                 }`}
             >
               <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${paymentOutcome === "success" ? "border-emerald-600" : "border-gray-300"
@@ -497,8 +497,8 @@ export default function PaymentPage() {
               type="button"
               onClick={() => setPaymentOutcome("failure")}
               className={`flex-1 py-3 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentOutcome === "failure"
-                  ? "bg-rose-50 border-rose-500 text-rose-700 shadow-3xs"
-                  : "border-gray-200 text-gray-500 hover:bg-gray-50 bg-white"
+                ? "bg-rose-50 border-rose-500 text-rose-700 shadow-3xs"
+                : "border-gray-200 text-gray-500 hover:bg-gray-50 bg-white"
                 }`}
             >
               <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${paymentOutcome === "failure" ? "border-rose-600" : "border-gray-300"

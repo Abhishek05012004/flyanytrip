@@ -62,7 +62,7 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate, ssrData
     });
   }
 
-  const activeMealsList = apiMealItems.length > 0 
+  const activeMealsList = apiMealItems.length > 0
     ? [{ id: "none", label: "No Meal Preference", price: 0, emoji: "—" }, ...apiMealItems]
     : [];
 
@@ -147,8 +147,8 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate, ssrData
                   key={meal.id}
                   onClick={() => handleMealSelect(meal.id)}
                   className={`border rounded-lg p-[13.125px] min-h-[58px] text-left cursor-pointer transition-all flex items-center justify-between font-inter ${isSelected
-                      ? "border-[#FF2D1A] bg-[#FFF5F4]"
-                      : "border-[#EAEAEA] hover:border-gray-300 bg-white"
+                    ? "border-[#FF2D1A] bg-[#FFF5F4]"
+                    : "border-[#EAEAEA] hover:border-gray-300 bg-white"
                     }`}
                 >
                   <div className="flex items-center space-x-[11.25px] select-none overflow-hidden pr-2">
@@ -223,8 +223,8 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate, ssrData
                       type="button"
                       onClick={() => handleAddonClick(addon.id)}
                       className={`text-[11.25px] font-bold rounded-[13.375px] cursor-pointer h-[28px] w-[63px] flex items-center justify-center border transition-all whitespace-nowrap ${isAdded
-                          ? "bg-[#FF2D1A] border-[#FF2D1A] text-white"
-                          : "bg-[#FFEFEF] border-[#FF8484] hover:bg-[#FFE5E5] text-[#E53935]"
+                        ? "bg-[#FF2D1A] border-[#FF2D1A] text-white"
+                        : "bg-[#FFEFEF] border-[#FF8484] hover:bg-[#FFE5E5] text-[#E53935]"
                         }`}
                     >
                       {isAdded ? "Added" : "+ Add"}
