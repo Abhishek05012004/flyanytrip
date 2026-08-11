@@ -314,7 +314,21 @@ export default function ResultPage() {
 
             const logo = airlineCode ? `https://images.kiwi.com/airlines/64/${airlineCode.toUpperCase()}.png` : "https://images.kiwi.com/airlines/64/6E.png";
 
-            const priceVal = option.Fare?.PublishedFare || 0;
+            // Calculate per adult fare from FareBreakdown (PassengerType 1 is Adult)
+            let adultFareVal = 0;
+            if (Array.isArray(option.FareBreakdown) && option.FareBreakdown.length > 0) {
+              const adultBreakdown = option.FareBreakdown.find(fb => fb.PassengerType === 1);
+              if (adultBreakdown) {
+                const count = adultBreakdown.PassengerCount || 1;
+                const totalAdultCost = (adultBreakdown.BaseFare || 0) + (adultBreakdown.Tax || 0) + (adultBreakdown.YQTax || 0) + (adultBreakdown.TransactionFee || 0) + (adultBreakdown.AdditionalTxnFeePub || 0) + (adultBreakdown.PGCharge || 0);
+                adultFareVal = totalAdultCost / count;
+              }
+            }
+            if (!adultFareVal) {
+              adultFareVal = option.Fare?.PublishedFare || 0;
+            }
+
+            const priceVal = adultFareVal;
             const priceStr = `₹${Math.round(priceVal).toLocaleString()}`;
 
             let stopsText = "Non-stop";

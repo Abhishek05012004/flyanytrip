@@ -164,7 +164,21 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
   const dynamicFares = rawFareList.map((opt, idx) => {
     const rawClass = opt.SupplierFareClass || opt.FareClassification?.Type || (idx === 0 ? "Saver" : idx === 1 ? "Value" : "Flexi");
     const fareTitle = rawClass.toLowerCase().startsWith("economy") ? rawClass : `Economy ${rawClass}`;
-    const price = Math.round(opt.Fare?.PublishedFare || 0);
+    
+    let adultFareVal = 0;
+    if (Array.isArray(opt.FareBreakdown) && opt.FareBreakdown.length > 0) {
+      const adultBreakdown = opt.FareBreakdown.find(fb => fb.PassengerType === 1);
+      if (adultBreakdown) {
+        const count = adultBreakdown.PassengerCount || 1;
+        const totalAdultCost = (adultBreakdown.BaseFare || 0) + (adultBreakdown.Tax || 0) + (adultBreakdown.YQTax || 0) + (adultBreakdown.TransactionFee || 0) + (adultBreakdown.AdditionalTxnFeePub || 0) + (adultBreakdown.PGCharge || 0);
+        adultFareVal = totalAdultCost / count;
+      }
+    }
+    if (!adultFareVal) {
+      adultFareVal = opt.Fare?.PublishedFare || 0;
+    }
+
+    const price = Math.round(adultFareVal);
     const segs = opt.Segments?.[0] || [];
     const fLeg = segs[0] || {};
     const cBaggage = fLeg.CabinBaggage || "7 KG";
