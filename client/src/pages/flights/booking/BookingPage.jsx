@@ -179,11 +179,26 @@ export default function BookingPage() {
         setLoadingSSR(true);
         const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
         const res = await axios.post(`${API_BASE_URL}/flights/ssr`, { TraceId: activeTraceId, ResultIndex: activeResultIndex });
-        if (isMounted && res.data?.responseData?.Response) {
-          setSsrData(res.data.responseData.Response);
+        const respObj = res.data?.responseData?.Response;
+
+        // Adivaha returns HTTP 200 even when it can't fulfil the request, so a
+        // missing/empty payload never throws here. Log the raw response so the
+        // real reason (provider Error object, wrong TraceId/ResultIndex, or a
+        // route that genuinely has no SSR support) is visible in devtools
+        // instead of just showing as "not available" with no clue why.
+        if (respObj?.Error?.ErrorCode && respObj.Error.ErrorCode !== 0) {
+          console.warn("[SSR] Provider returned an error:", respObj.Error, { TraceId: activeTraceId, ResultIndex: activeResultIndex });
+        } else if (!respObj?.Baggage?.length && !respObj?.MealDynamic?.length && !respObj?.SeatDynamic?.length) {
+          console.warn("[SSR] Response had no Baggage/MealDynamic/SeatDynamic — either this fare genuinely has no SSR, or TraceId/ResultIndex is stale. Raw response:", res.data, { TraceId: activeTraceId, ResultIndex: activeResultIndex });
+        } else {
+          console.log("[SSR] Loaded successfully:", respObj);
+        }
+
+        if (isMounted && respObj) {
+          setSsrData(respObj);
         }
       } catch (err) {
-        console.error("Error fetching live SSR options:", err);
+        console.error("Error fetching live SSR options:", err.response?.data || err.message);
       } finally {
         if (isMounted) setLoadingSSR(false);
       }

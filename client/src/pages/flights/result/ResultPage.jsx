@@ -665,19 +665,24 @@ export default function ResultPage() {
           onClose={() => setIsModalOpen(false)}
           onContinue={(fare, quoteData) => {
             setIsModalOpen(false);
-            const activeResultIndex = fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
-            const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(traceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
-            navigate(`/flights/book?${urlQuery}`, { 
-              state: { 
-                flight: selectedFlight, 
-                fare, 
-                traceId, 
+            // FareQuote returns a freshly validated fare option which includes its own ResultIndex.
+            // Adivaha/TBO SSR requirement: ResultIndex sent to SSR MUST match the ResultIndex returned by FareQuote!
+            const activeResultIndex = quoteData?.results?.ResultIndex || fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
+            // Prefer the TraceId echoed back by the live Fare Quote call (fetched
+            // when the fare modal opened) over the original search TraceId.
+            const activeTraceId = quoteData?.traceId || traceId;
+            const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(activeTraceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
+            navigate(`/flights/book?${urlQuery}`, {
+              state: {
+                flight: selectedFlight,
+                fare,
+                traceId: activeTraceId,
                 resultIndex: activeResultIndex,
                 quoteData,
                 adults,
                 children,
                 infants
-              } 
+              }
             });
           }}
         />

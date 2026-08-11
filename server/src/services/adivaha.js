@@ -23,11 +23,11 @@ const executeRequest = async (requestFn, retries = 3, delay = 1000) => {
     try {
       return await requestFn();
     } catch (error) {
-      const isNetworkError = 
-        error.code === "ECONNRESET" || 
-        error.code === "ETIMEDOUT" || 
+      const isNetworkError =
+        error.code === "ECONNRESET" ||
+        error.code === "ETIMEDOUT" ||
         error.message?.includes("ECONNRESET");
-        
+
       if (isNetworkError && i < retries - 1) {
         console.warn(`Adivaha connection dropped (${error.code || error.message}). Retrying request in ${delay}ms... (Attempt ${i + 1}/${retries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -35,6 +35,24 @@ const executeRequest = async (requestFn, retries = 3, delay = 1000) => {
       }
       throw error;
     }
+  }
+};
+
+// Adivaha almost never throws an HTTP error for a bad request — it responds
+// with HTTP 200 and either an empty payload or a Response.Error object with
+// a non-zero ErrorCode/ResponseStatus 0. Without logging this explicitly,
+// a wrong action name, expired TraceId, or invalid ResultIndex all look
+// identical from the outside ("no data"). This helper makes that visible
+// in the server console so it can be diagnosed instead of guessed at.
+const logIfProviderError = (label, data) => {
+  const resp = data?.responseData?.Response;
+  if (!resp) {
+    console.warn(`[Adivaha][${label}] No responseData.Response in payload. Raw status/message:`, data?.status, data?.status_message);
+    return;
+  }
+  const err = resp.Error;
+  if ((err && err.ErrorCode && err.ErrorCode !== 0) || resp.ResponseStatus === 0) {
+    console.warn(`[Adivaha][${label}] Provider returned an error. ErrorCode=${err?.ErrorCode} ErrorMessage="${err?.ErrorMessage}" ResponseStatus=${resp.ResponseStatus} TraceId=${resp.TraceId}`);
   }
 };
 
@@ -103,12 +121,19 @@ export const updateCalendarFareOfDayAPI = async (params) => {
   }
 };
 
+// NOTE: Adivaha's "action" values do NOT follow a predictable casing pattern
+// (confirmed against the official API docs in client/Adivaha API/*.png).
+// Sending the wrong action string does not throw — the provider silently
+// returns an empty/near-empty Response, which is why SSR (seat/meal/baggage),
+// fare quote, fare rule, and booking endpoints were failing while
+// flightLocations/flightSearch/GetCalendarFare/UpdateCalendarFareOfDay worked.
 export const getFareQuoteAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightFareQuote", {
-      action: "FlightFareQuote",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=fareQuote", {
+      action: "fareQuote",
       ...params
     }));
+    logIfProviderError("FareQuote", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha Flight Fare Quote Error:", error.response?.data || error.message);
@@ -118,10 +143,11 @@ export const getFareQuoteAPI = async (params) => {
 
 export const getFareRulesAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightsFareRule", {
-      action: "FlightsFareRule",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=fareRule", {
+      action: "fareRule",
       ...params
     }));
+    logIfProviderError("FareRule", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha Flight Fare Rules Error:", error.response?.data || error.message);
@@ -129,12 +155,15 @@ export const getFareRulesAPI = async (params) => {
   }
 };
 
+// Flight SSR — provides Baggage / MealDynamic / SeatDynamic / SpecialServices.
+// Fixed: action must be "flightSSR" (lowercase f), not "FlightSSR".
 export const getSSRAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=FlightSSR", {
-      action: "FlightSSR",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=flightSSR", {
+      action: "flightSSR",
       ...params
     }));
+    logIfProviderError("FlightSSR", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha Flight SSR Error:", error.response?.data || error.message);
@@ -144,8 +173,8 @@ export const getSSRAPI = async (params) => {
 
 export const bookLCCTicketAPI = async (bookingData) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=LCCFlightTicket", {
-      action: "LCCFlightTicket",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ticketForLcc", {
+      action: "ticketForLcc",
       ...bookingData
     }));
     return response.data;
@@ -157,8 +186,8 @@ export const bookLCCTicketAPI = async (bookingData) => {
 
 export const bookNonLCCAPI = async (bookingData) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=NonLCCFlightBook", {
-      action: "NonLCCFlightBook",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=flightBook", {
+      action: "flightBook",
       ...bookingData
     }));
     return response.data;
@@ -170,8 +199,8 @@ export const bookNonLCCAPI = async (bookingData) => {
 
 export const issueNonLCCTicketAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=NonLCCTicketIssue", {
-      action: "NonLCCTicketIssue",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ticketForNonLcc", {
+      action: "ticketForNonLcc",
       ...params
     }));
     return response.data;
@@ -183,8 +212,8 @@ export const issueNonLCCTicketAPI = async (params) => {
 
 export const releaseHoldBookingAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ReleaseOrCancelHoldBooking", {
-      action: "ReleaseOrCancelHoldBooking",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ReleasePNRRequest", {
+      action: "ReleasePNRRequest",
       ...params
     }));
     return response.data;
@@ -196,8 +225,8 @@ export const releaseHoldBookingAPI = async (params) => {
 
 export const getBookingDetailsAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetBookingDetails", {
-      action: "GetBookingDetails",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=getBookingDetails", {
+      action: "getBookingDetails",
       ...params
     }));
     return response.data;
@@ -209,8 +238,8 @@ export const getBookingDetailsAPI = async (params) => {
 
 export const getCancellationChargesAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetCancellationCharges", {
-      action: "GetCancellationCharges",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=getCancellationCharges", {
+      action: "getCancellationCharges",
       ...params
     }));
     return response.data;
@@ -222,8 +251,8 @@ export const getCancellationChargesAPI = async (params) => {
 
 export const cancelBookingAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=CancelBooking", {
-      action: "CancelBooking",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ticketCancel", {
+      action: "ticketCancel",
       ...params
     }));
     return response.data;
@@ -235,8 +264,8 @@ export const cancelBookingAPI = async (params) => {
 
 export const getCancellationStatusAPI = async (params) => {
   try {
-    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=GetCancellationStatus", {
-      action: "GetCancellationStatus",
+    const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=checkChangeStatus", {
+      action: "checkChangeStatus",
       ...params
     }));
     return response.data;
@@ -245,5 +274,3 @@ export const getCancellationStatusAPI = async (params) => {
     throw new Error("Failed to fetch cancellation status from provider");
   }
 };
-
-

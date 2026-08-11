@@ -244,6 +244,43 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleContinueClick = async () => {
+    const selectedResultIndex = currentFare?.rawOption?.ResultIndex || flight.rawOption?.ResultIndex;
+    if (!traceId || !selectedResultIndex) {
+      onContinue(currentFare, quoteData);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      // Re-quote the exact selected fare tier to get its fresh ResultIndex & confirmed price
+      const quoteRes = await axios.post(`${API_BASE_URL}/flights/fare-quote`, {
+        TraceId: traceId,
+        ResultIndex: selectedResultIndex
+      });
+
+      const respObj = quoteRes.data?.responseData?.Response;
+      if (respObj && respObj.Results) {
+        const updatedQuoteData = {
+          results: respObj.Results,
+          isPriceChanged: respObj.IsPriceChanged,
+          traceId: respObj.TraceId || traceId,
+          rules: quoteData?.rules
+        };
+        onContinue(currentFare, updatedQuoteData);
+      } else {
+        onContinue(currentFare, quoteData);
+      }
+    } catch (err) {
+      console.error("Error re-quoting selected fare tier:", err);
+      onContinue(currentFare, quoteData);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs font-inter p-4">
       {/* Modal Container card */}
@@ -477,14 +514,18 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
           </div>
 
           <button 
-            onClick={() => onContinue(currentFare, quoteData)}
-            className="w-[160px] h-[40px] rounded-lg bg-[#FF2D1A] hover:bg-red-750 text-white font-black text-[13px] tracking-wide transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center justify-center select-none"
+            onClick={handleContinueClick}
+            disabled={isSubmitting}
+            className="w-[160px] h-[40px] rounded-lg bg-[#FF2D1A] hover:bg-red-750 text-white font-black text-[13px] tracking-wide transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center justify-center select-none disabled:opacity-50"
           >
-            <span>Continue &rarr;</span>
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <span>Continue &rarr;</span>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
