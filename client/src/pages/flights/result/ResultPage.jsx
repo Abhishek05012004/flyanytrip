@@ -665,19 +665,24 @@ export default function ResultPage() {
           onClose={() => setIsModalOpen(false)}
           onContinue={(fare, quoteData) => {
             setIsModalOpen(false);
-            const activeResultIndex = fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
-            const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(traceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
-            navigate(`/flights/book?${urlQuery}`, { 
-              state: { 
-                flight: selectedFlight, 
-                fare, 
-                traceId, 
+            // Adivaha/TBO requires the ResultIndex (and TraceId) exactly as
+            // echoed back by the live FareQuote call — not the original
+            // search-time values. Falls back to the search values only if
+            // the live quote call failed for some reason.
+            const activeResultIndex = quoteData?.results?.ResultIndex || fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
+            const activeTraceId = quoteData?.traceId || traceId;
+            const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(activeTraceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
+            navigate(`/flights/book?${urlQuery}`, {
+              state: {
+                flight: selectedFlight,
+                fare,
+                traceId: activeTraceId,
                 resultIndex: activeResultIndex,
                 quoteData,
                 adults,
                 children,
                 infants
-              } 
+              }
             });
           }}
         />

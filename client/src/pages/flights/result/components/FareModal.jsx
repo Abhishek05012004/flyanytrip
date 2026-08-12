@@ -88,16 +88,16 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
       const rulesFlat = rawMiniRules.flat(2);
       rulesFlat.forEach(r => {
         if (!r || typeof r !== "object") return;
-        
+
         const type = (r.Type || "").toLowerCase();
         let rawDetails = r.Details ? r.Details.replace(/INR/g, "₹").trim() : "";
-        
+
         // Ensure 'fee' is appended to price string if it ends with digits
         let formattedDetails = rawDetails;
         if (rawDetails && !rawDetails.toLowerCase().includes("fee")) {
           formattedDetails = `${rawDetails} fee`;
         }
-        
+
         let timingStr = "";
         if (r.From !== undefined && r.From !== null && r.From !== "") {
           if (r.To && r.To !== "0") {
@@ -216,6 +216,67 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
   const [selectedFareIdx, setSelectedFareIdx] = useState(0);
   const currentFare = dynamicFares[selectedFareIdx] || dynamicFares[0];
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [continueError, setContinueError] = useState(null);
+
+  // The mount-time FareQuote effect above only re-prices flight.rawOption
+  // (the cheapest/default tier shown on the results card) — it does NOT
+  // know which fare tier the user ends up clicking in this modal. Adivaha
+  // rejects SSR/Book calls whose ResultIndex doesn't match the ResultIndex
+  // last confirmed via FareQuote (ErrorCode 3: "Invalid ResultIndex. It
+  // should be same with Farequote ResultIndex"), so before leaving this
+  // modal we always re-quote whichever tier is actually selected and hand
+  // that fresh TraceId/ResultIndex forward — never the stale mount-time one.
+  const handleContinueClick = async () => {
+    const selectedResultIndex = currentFare?.rawOption?.ResultIndex || flight.rawOption?.ResultIndex;
+    setContinueError(null);
+
+    if (!traceId || !selectedResultIndex) {
+      onContinue(currentFare, quoteData);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const quoteRes = await axios.post(`${API_BASE_URL}/flights/fare-quote`, {
+        TraceId: traceId,
+        ResultIndex: selectedResultIndex
+      });
+
+      const respObj = quoteRes.data?.responseData?.Response;
+      if (respObj?.Error?.ErrorCode && respObj.Error.ErrorCode !== 0) {
+        throw new Error(respObj.Error.ErrorMessage || "This fare could not be confirmed");
+      }
+      if (respObj?.Results) {
+        const updatedQuoteData = {
+          results: respObj.Results,
+          isPriceChanged: respObj.IsPriceChanged,
+          traceId: respObj.TraceId || traceId,
+          rules: quoteData?.rules
+        };
+        onContinue(currentFare, updatedQuoteData);
+        return;
+      }
+      throw new Error("This fare could not be confirmed, please try again");
+    } catch (err) {
+      console.error("Error re-quoting selected fare tier:", err.response?.data || err.message);
+      // quoteData from the mount-time effect only matches the ResultIndex of
+      // dynamicFares[0] (it's fetched once for flight.rawOption, not per
+      // selected tier). Falling back to it for any OTHER selected tier would
+      // silently send a mismatched ResultIndex to SSR/Book and reproduce the
+      // exact "Invalid ResultIndex. It should be same with Farequote
+      // ResultIndex" error — so that fallback is only safe when the
+      // mount-time quote and the currently selected tier are the same one.
+      if (selectedFareIdx === 0 && quoteData?.results) {
+        onContinue(currentFare, quoteData);
+      } else {
+        setContinueError("Could not confirm this fare right now. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle scroll detection
   const checkScrollState = () => {
     if (scrollContainerRef.current) {
@@ -252,15 +313,15 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
         {/* 1. HEADER SECTION                                                        */}
         {/* ========================================================================= */}
         <div className="p-5 border-b border-[#EAEAEA] relative bg-white">
-          
+
           {/* Close button */}
-          <button 
+          <button
             onClick={onClose}
             className="w-7 h-7 rounded-full border border-[#EAEAEA] bg-white hover:bg-gray-50 flex items-center justify-center text-[#272727] hover:text-black transition-colors absolute right-5 top-5 z-10 shadow-3xs cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
- 
+
           {/* Primary Route Detail */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-20 md:pr-28">
             {/* Airline Info */}
@@ -321,7 +382,7 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
         {/* 2. FARE SELECTION GRID                                                   */}
         {/* ========================================================================= */}
         <div className="p-5 flex-grow overflow-y-auto bg-gray-50/20 relative">
-          
+
           {/* Live Price Change Alert Banner */}
           {quoteData?.isPriceChanged && (
             <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[12px] font-bold flex items-center justify-between shadow-2xs animate-fade-in">
@@ -341,7 +402,7 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
 
           <div className="relative">
             {/* Scroll Container */}
-            <div 
+            <div
               ref={scrollContainerRef}
               onScroll={checkScrollState}
               className="flex gap-4 overflow-x-auto scrollbar-none scroll-smooth pb-2 pt-1 px-0.5"
@@ -353,13 +414,12 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
                   <div
                     key={idx}
                     onClick={() => setSelectedFareIdx(idx)}
-                    className={`border-2 rounded-xl p-4.5 cursor-pointer transition-all flex flex-col justify-between relative min-h-[290px] w-[calc((100%-32px)/3)] flex-shrink-0 select-none box-border ${
-                      isSelected 
-                        ? "bg-[#FFF9F8] border-[#FF2D1A] shadow-sm" 
+                    className={`border-2 rounded-xl p-4.5 cursor-pointer transition-all flex flex-col justify-between relative min-h-[290px] w-[calc((100%-32px)/3)] flex-shrink-0 select-none box-border ${isSelected
+                        ? "bg-[#FFF9F8] border-[#FF2D1A] shadow-sm"
                         : "bg-white border-[#EAEAEA] hover:border-gray-300"
-                    }`}
+                      }`}
                   >
-                    
+
                     {/* Card Header details */}
                     <div>
                       {/* Top Row: Radio selector & Price side-by-side with 'per adult' */}
@@ -392,7 +452,7 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
                         </div>
                         <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">Cabin: {item.cabin}</p>
                         <p className="pl-5 text-[#6B6B6B] font-semibold text-[12px]">{item.checkIn}</p>
-                        
+
                         {(item.cancelList?.length > 0 || item.changeList?.length > 0) && (
                           <div className="pt-2">
                             <div className="flex items-center space-x-1.5 text-[#272727] font-extrabold mb-1.5">
@@ -474,17 +534,24 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
               Selected: <strong className="text-[#272727] font-extrabold">{currentFare.title}</strong>
             </span>
             <span className="text-[24px] font-black text-[#272727] leading-none mt-1">₹{currentFare.price.toLocaleString()}</span>
+            {continueError && (
+              <span className="text-[11px] text-red-600 font-semibold mt-1">{continueError}</span>
+            )}
           </div>
 
-          <button 
-            onClick={() => onContinue(currentFare, quoteData)}
-            className="w-[160px] h-[40px] rounded-lg bg-[#FF2D1A] hover:bg-red-750 text-white font-black text-[13px] tracking-wide transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center justify-center select-none"
+          <button
+            onClick={handleContinueClick}
+            disabled={isSubmitting}
+            className="w-[160px] h-[40px] rounded-lg bg-[#FF2D1A] hover:bg-red-750 text-white font-black text-[13px] tracking-wide transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center justify-center select-none disabled:opacity-50"
           >
-            <span>Continue &rarr;</span>
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <span>Continue &rarr;</span>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
