@@ -17,11 +17,91 @@ const adivahaClient = axios.create({
   }
 });
 
-// Helper function to execute requests with retries for network-level drops
+// --- Session/token management ---------------------------------------------
+// Per Adivaha's "Create Token" doc: the returned token is tracked internally
+// by Adivaha against our PID/x-api-key pair and must NOT be sent in
+// subsequent request bodies — but a token still has to actually exist for
+// the day, or Adivaha rejects requests. Tokens are valid only until
+// 11:59 PM on the calendar day they were issued (not a rolling 24h window),
+// so a fresh one is needed every day. This app never called createToken at
+// all, which is consistent with exactly what was being seen: read-only
+// endpoints (flightSearch, flightLocations, GetCalendarFare) kept working
+// with no session, while every booking attempt (ticketForLcc/flightBook/
+// ticketForNonLcc) failed with a generic, unhelpful error — Adivaha's docs
+// specifically call out "Invalid Token" as ErrorCode 6, and a booking
+// endpoint enforcing a valid session while search endpoints don't is a very
+// plausible explanation for that exact split.
+let tokenAuthenticatedDateKey = null; // "YYYY-MM-DD" for the day we last successfully created a token
+let tokenCreationPromise = null; // de-dupes concurrent createToken calls if several requests race in
+
+const todayKey = () => {
+  // Adivaha's "valid until 11:59 PM" almost certainly means IST (UTC+5:30),
+  // since it's an Indian travel API provider — using the server's local/UTC
+  // date here would create a ~5.5 hour daily window (18:30-23:59 UTC) where
+  // we think today's token is still valid by our clock while Adivaha has
+  // already rolled over to a new day by theirs. The ErrorCode-6 auto-retry
+  // in executeRequest() is a safety net either way, but computing the date
+  // in IST avoids relying on that safety net every single day.
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  return new Date(Date.now() + IST_OFFSET_MS).toISOString().slice(0, 10);
+};
+
+export const createTokenAPI = async () => {
+  const response = await adivahaClient.get("/flights/api/", {
+    params: { action: "createToken" }
+  });
+  return response.data;
+};
+
+const ensureAdivahaSession = async (force = false) => {
+  if (!force && tokenAuthenticatedDateKey === todayKey()) return;
+  if (tokenCreationPromise) return tokenCreationPromise;
+
+  tokenCreationPromise = (async () => {
+    try {
+      const data = await createTokenAPI();
+      const errorCode = data?.responseData?.Response?.Error?.ErrorCode ?? data?.Error?.ErrorCode;
+      const failed = (errorCode && errorCode !== 0) || data?.status === "400" || data?.status === 400;
+      if (!failed) {
+        tokenAuthenticatedDateKey = todayKey();
+        console.log(`[Adivaha] Session token created/refreshed for ${tokenAuthenticatedDateKey}`);
+      } else {
+        console.error("[Adivaha] createToken did not report success — check ADIVAHA_PID/ADIVAHA_API_KEY in .env:", data);
+      }
+    } catch (err) {
+      console.error("[Adivaha] Failed to create session token — check ADIVAHA_PID/ADIVAHA_API_KEY/ADIVAHA_BASE_URL in .env:", err.response?.data || err.message);
+    } finally {
+      tokenCreationPromise = null;
+    }
+  })();
+
+  return tokenCreationPromise;
+};
+
+// Called once at server boot (see index.js) so the very first real request
+// doesn't pay the extra round-trip, and so a bad PID/API key shows up
+// immediately in the startup logs instead of surfacing later as a mystery
+// booking failure.
+export const warmUpAdivahaSession = () => ensureAdivahaSession();
+
+// Helper function to execute requests with retries for network-level drops.
+// Also ensures a same-day session token exists before every call, and
+// transparently re-authenticates + retries once if Adivaha reports
+// "Invalid Token" (ErrorCode 6) mid-session (e.g. the token expired at
+// midnight while the server process kept running).
 const executeRequest = async (requestFn, retries = 3, delay = 1000) => {
+  await ensureAdivahaSession();
+
   for (let i = 0; i < retries; i++) {
     try {
-      return await requestFn();
+      const response = await requestFn();
+      const errorCode = response?.data?.responseData?.Response?.Error?.ErrorCode ?? response?.data?.Error?.ErrorCode;
+      if (errorCode === 6) {
+        console.warn("[Adivaha] Session token invalid/expired (ErrorCode 6) — re-authenticating and retrying this request once.");
+        await ensureAdivahaSession(true);
+        return await requestFn();
+      }
+      return response;
     } catch (error) {
       const isNetworkError =
         error.code === "ECONNRESET" ||
@@ -48,11 +128,34 @@ const logIfProviderError = (label, data) => {
   const resp = data?.responseData?.Response;
   if (!resp) {
     console.warn(`[Adivaha][${label}] No responseData.Response in payload. Raw status/message:`, data?.status, data?.status_message);
+    console.warn(`[Adivaha][${label}] Full raw response:`, JSON.stringify(data));
     return;
   }
   const err = resp.Error;
-  if ((err && err.ErrorCode && err.ErrorCode !== 0) || resp.ResponseStatus === 0) {
-    console.warn(`[Adivaha][${label}] Provider returned an error. ErrorCode=${err?.ErrorCode} ErrorMessage="${err?.ErrorMessage}" ResponseStatus=${resp.ResponseStatus} TraceId=${resp.TraceId}`);
+  const statusIndicatesError = resp.Status !== undefined && resp.Status !== null && resp.Status !== 0 && resp.Status !== 1;
+  if ((err && err.ErrorCode && err.ErrorCode !== 0) || resp.ResponseStatus === 0 || statusIndicatesError) {
+    console.warn(`[Adivaha][${label}] Provider returned an error. ErrorCode=${err?.ErrorCode} ErrorMessage="${err?.ErrorMessage}" ResponseStatus=${resp.ResponseStatus} Status=${resp.Status} TraceId=${resp.TraceId}`);
+    // Full raw response dump so field-level issues (missing Fare data, wrong
+    // casing, etc.) can actually be diagnosed instead of guessed at — the
+    // one-line summary above only captures ErrorCode/ErrorMessage.
+    console.warn(`[Adivaha][${label}] Full raw response:`, JSON.stringify(data));
+  }
+};
+
+// Get Wallet Balance — GET /flights/api/?action=GetWalletBalance
+// Returns { status, PID, ApiKey, wallet_currency, wallet_balance, test_wallet_balance }.
+// In sandbox/test mode, Adivaha deducts from `test_wallet_balance` instead of the
+// live `wallet_balance`, so this is the figure to check before letting a test
+// booking go through.
+export const getWalletBalanceAPI = async () => {
+  try {
+    const response = await executeRequest(() => adivahaClient.get("/flights/api/", {
+      params: { action: "GetWalletBalance" }
+    }));
+    return response.data;
+  } catch (error) {
+    console.error("Adivaha Get Wallet Balance Error:", error.response?.data || error.message);
+    throw new Error("Failed to fetch wallet balance from provider");
   }
 };
 
@@ -173,10 +276,17 @@ export const getSSRAPI = async (params) => {
 
 export const bookLCCTicketAPI = async (bookingData) => {
   try {
+    // Log a summary of the outgoing payload (not full PII) so a malformed
+    // Fare object — the most likely cause of a generic provider rejection —
+    // is visible without digging through logs. `Fare` should never be
+    // null/undefined here; if it is, the caller didn't get it from a real
+    // FareQuote result.
+    console.log(`[Adivaha][LCC Ticket] Requesting booking. TraceId=${bookingData?.TraceId} ResultIndex=${bookingData?.ResultIndex} IsLCC=${bookingData?.IsLCC} Passengers=${bookingData?.Passengers?.length} Fare present per passenger=${bookingData?.Passengers?.map(p => !!p.Fare).join(",")}`);
     const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=ticketForLcc", {
       action: "ticketForLcc",
       ...bookingData
     }));
+    logIfProviderError("LCC Ticket", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha LCC Flight Ticket Error:", error.response?.data || error.message);
@@ -186,10 +296,12 @@ export const bookLCCTicketAPI = async (bookingData) => {
 
 export const bookNonLCCAPI = async (bookingData) => {
   try {
+    console.log(`[Adivaha][Non-LCC Book] Requesting hold. TraceId=${bookingData?.TraceId} ResultIndex=${bookingData?.ResultIndex} IsLCC=${bookingData?.IsLCC} Passengers=${bookingData?.Passengers?.length} Fare present per passenger=${bookingData?.Passengers?.map(p => !!p.Fare).join(",")}`);
     const response = await executeRequest(() => adivahaClient.post("/flights/api/?action=flightBook", {
       action: "flightBook",
       ...bookingData
     }));
+    logIfProviderError("Non-LCC Book", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha Non LCC Flight Book Error:", error.response?.data || error.message);
@@ -203,6 +315,7 @@ export const issueNonLCCTicketAPI = async (params) => {
       action: "ticketForNonLcc",
       ...params
     }));
+    logIfProviderError("Non-LCC Ticket Issue", response.data);
     return response.data;
   } catch (error) {
     console.error("Adivaha Non LCC Ticket Issue Error:", error.response?.data || error.message);

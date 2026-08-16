@@ -2,21 +2,84 @@
  * ============================================================================
  * PATH: client/src/pages/flights/booking/components/BookingInfo.jsx
  * DESCRIPTION: Passenger details and contact information input form (Step 1).
+ *
+ * NOTE: This form is now fully controlled. Every field the Adivaha
+ * ticketForLcc / flightBook APIs require per passenger (Title, FirstName,
+ * LastName, DateOfBirth for infants, ContactNo, Email) is collected here and
+ * lifted to BookingPage via onContinue(data), instead of being discarded
+ * and replaced with hardcoded placeholder passenger data at payment time.
  * ============================================================================
  */
 
-import React from "react";
-import { Mail, Phone, User, Calendar, Flag, Plus, ChevronDown } from "lucide-react";
+import React, { useState } from "react";
+import { Mail, User, ChevronDown } from "lucide-react";
+
+const emptyAdult = () => ({ title: "Mr", firstName: "", lastName: "" });
+const emptyChild = () => ({ title: "Master", firstName: "", lastName: "" });
+const emptyInfant = () => ({ title: "Master", firstName: "", lastName: "", dob: "" });
 
 export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount = 0, infantsCount = 0 }) {
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onContinue();
+  const adultCountSafe = Math.max(1, parseInt(adultsCount, 10) || 1);
+  const childCountSafe = Math.max(0, parseInt(childrenCount, 10) || 0);
+  const infantCountSafe = Math.max(0, parseInt(infantsCount, 10) || 0);
+
+  // Contact details used for booking confirmation + Adivaha lead-pax contact fields
+  const [contactMobile, setContactMobile] = useState("");
+  const [contactCode, setContactCode] = useState("+91");
+  const [contactEmail, setContactEmail] = useState("");
+
+  // Passenger detail arrays, one entry per traveller in each category
+  const [adults, setAdults] = useState(() => Array.from({ length: adultCountSafe }, emptyAdult));
+  const [children, setChildren] = useState(() => Array.from({ length: childCountSafe }, emptyChild));
+  const [infants, setInfants] = useState(() => Array.from({ length: infantCountSafe }, emptyInfant));
+
+  const updatePax = (setter, idx, field, value) => {
+    setter((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
   };
 
-  const adultArr = Array.from({ length: Math.max(1, parseInt(adultsCount, 10) || 1) });
-  const childArr = Array.from({ length: Math.max(0, parseInt(childrenCount, 10) || 0) });
-  const infantArr = Array.from({ length: Math.max(0, parseInt(infantsCount, 10) || 0) });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Build the structured payload BookingPage/PaymentPage need to construct
+    // a correct Adivaha Passengers[] array (PaxType 1=Adult, 2=Child, 3=Infant).
+    const passengers = [
+      ...adults.map((p, idx) => ({
+        paxType: 1,
+        title: p.title,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        isLeadPax: idx === 0
+      })),
+      ...children.map((p) => ({
+        paxType: 2,
+        title: p.title,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        isLeadPax: false
+      })),
+      ...infants.map((p) => ({
+        paxType: 3,
+        title: p.title,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        dob: p.dob,
+        isLeadPax: false
+      }))
+    ];
+
+    onContinue({
+      contact: {
+        mobile: contactMobile,
+        countryCode: contactCode,
+        email: contactEmail
+      },
+      passengers
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 font-sans text-left">
@@ -33,7 +96,11 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
             <div className="flex items-center space-x-2.5">
               {/* Country Code Dropdown */}
               <div className="relative flex-shrink-0 w-[107px]">
-                <select className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg pl-4 pr-8 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none cursor-pointer appearance-none">
+                <select
+                  value={contactCode}
+                  onChange={(e) => setContactCode(e.target.value)}
+                  className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg pl-4 pr-8 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none cursor-pointer appearance-none"
+                >
                   <option>+91</option>
                   <option>+1</option>
                   <option>+44</option>
@@ -45,7 +112,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
               <input
                 type="tel"
                 required
-                defaultValue="98765 43210"
+                value={contactMobile}
+                onChange={(e) => setContactMobile(e.target.value)}
                 placeholder="Enter mobile number"
                 className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg px-4 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none placeholder-[#757575]"
               />
@@ -60,7 +128,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
               <input
                 type="email"
                 required
-                defaultValue="you@email.com"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="Enter email address"
                 className="w-full py-2 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none placeholder-[#757575]"
               />
@@ -70,10 +139,10 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
 
         {/* Checkbox confirmation */}
         <label className="flex items-center space-x-3.5 mt-[24px] text-[15.09px] font-normal text-[#666666] cursor-pointer select-none">
-          <input 
-            type="checkbox" 
-            defaultChecked 
-            className="w-[19px] h-[19px] rounded-xs border border-gray-300 accent-[#FF2D1A] cursor-pointer flex-shrink-0" 
+          <input
+            type="checkbox"
+            defaultChecked
+            className="w-[19px] h-[19px] rounded-xs border border-gray-300 accent-[#FF2D1A] cursor-pointer flex-shrink-0"
           />
           <span className="font-inter">Send booking confirmation and ticket details to this email address</span>
         </label>
@@ -81,7 +150,7 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
 
       {/* 2. Passenger Details Section (EaseMyTrip Style) */}
       <div className="bg-white border border-[#EAEAEA] rounded-2xl p-[28px] shadow-2xs font-inter space-y-6">
-        
+
         {/* Header with ID proof notice */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAEAEA]">
           <div>
@@ -99,9 +168,9 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         {/* ------------------------------------------------------------------------- */}
         <div className="space-y-4">
           <h4 className="text-[13px] font-extrabold text-[#555555] uppercase tracking-wider text-left font-inter">ADULT</h4>
-          
-          {adultArr.map((_, idx) => (
-            <div key={`adult-${idx}`} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
+
+          {adults.map((pax, idx) => (
+            <div key={"adult-" + idx} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
               {/* Card Header Bar */}
               <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-5 py-3.5 flex items-center justify-between select-none">
                 <div className="flex items-center space-x-2.5">
@@ -120,7 +189,11 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                   <div className="text-left relative">
                     <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Title *</span>
                     <div className="relative">
-                      <select className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none">
+                      <select
+                        value={pax.title}
+                        onChange={(e) => updatePax(setAdults, idx, "title", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                      >
                         <option>Mr</option>
                         <option>Mrs</option>
                         <option>Ms</option>
@@ -134,7 +207,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     <input
                       type="text"
                       required
-                      defaultValue={idx === 0 ? "Rahul" : ""}
+                      value={pax.firstName}
+                      onChange={(e) => updatePax(setAdults, idx, "firstName", e.target.value)}
                       placeholder="Enter first & middle name"
                       className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                     />
@@ -145,41 +219,9 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     <input
                       type="text"
                       required
-                      defaultValue={idx === 0 ? "Sharma" : ""}
+                      value={pax.lastName}
+                      onChange={(e) => updatePax(setAdults, idx, "lastName", e.target.value)}
                       placeholder="Enter last name"
-                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2: Code, Mobile Number, Email ID */}
-                <div className="grid grid-cols-1 md:grid-cols-[110px_1fr_1fr] gap-[16px]">
-                  <div className="text-left relative">
-                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Code</span>
-                    <div className="relative">
-                      <select className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none">
-                        <option>+91</option>
-                        <option>+1</option>
-                        <option>+44</option>
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div className="text-left">
-                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Contact Number (Optional)</span>
-                    <input
-                      type="tel"
-                      placeholder="Enter mobile number"
-                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
-                    />
-                  </div>
-
-                  <div className="text-left">
-                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Email ID (Optional)</span>
-                    <input
-                      type="email"
-                      placeholder="Enter email address"
                       className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                     />
                   </div>
@@ -192,12 +234,12 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         {/* ------------------------------------------------------------------------- */}
         {/* CATEGORY 2: CHILD (Rendered only if childrenCount > 0)                    */}
         {/* ------------------------------------------------------------------------- */}
-        {childArr.length > 0 && (
+        {children.length > 0 && (
           <div className="space-y-4 pt-2">
             <h4 className="text-[13px] font-extrabold text-[#555555] uppercase tracking-wider text-left font-inter">CHILD</h4>
-            
-            {childArr.map((_, idx) => (
-              <div key={`child-${idx}`} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
+
+            {children.map((pax, idx) => (
+              <div key={"child-" + idx} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
                 <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-5 py-3.5 flex items-center justify-between select-none">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-5 h-5 rounded-md bg-orange-500 flex items-center justify-center text-white">
@@ -213,7 +255,11 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     <div className="text-left relative">
                       <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Title *</span>
                       <div className="relative">
-                        <select className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none">
+                        <select
+                          value={pax.title}
+                          onChange={(e) => updatePax(setChildren, idx, "title", e.target.value)}
+                          className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                        >
                           <option>Master</option>
                           <option>Miss</option>
                         </select>
@@ -226,6 +272,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                       <input
                         type="text"
                         required
+                        value={pax.firstName}
+                        onChange={(e) => updatePax(setChildren, idx, "firstName", e.target.value)}
                         placeholder="Enter first & middle name"
                         className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                       />
@@ -236,6 +284,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                       <input
                         type="text"
                         required
+                        value={pax.lastName}
+                        onChange={(e) => updatePax(setChildren, idx, "lastName", e.target.value)}
                         placeholder="Enter last name"
                         className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                       />
@@ -250,12 +300,12 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         {/* ------------------------------------------------------------------------- */}
         {/* CATEGORY 3: INFANT (Rendered only if infantsCount > 0)                   */}
         {/* ------------------------------------------------------------------------- */}
-        {infantArr.length > 0 && (
+        {infants.length > 0 && (
           <div className="space-y-4 pt-2">
             <h4 className="text-[13px] font-extrabold text-[#555555] uppercase tracking-wider text-left font-inter">INFANT</h4>
-            
-            {infantArr.map((_, idx) => (
-              <div key={`infant-${idx}`} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
+
+            {infants.map((pax, idx) => (
+              <div key={"infant-" + idx} className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-3xs">
                 <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-5 py-3.5 flex items-center justify-between select-none">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-5 h-5 rounded-md bg-blue-500 flex items-center justify-center text-white">
@@ -271,7 +321,11 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     <div className="text-left relative">
                       <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Title *</span>
                       <div className="relative">
-                        <select className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none">
+                        <select
+                          value={pax.title}
+                          onChange={(e) => updatePax(setInfants, idx, "title", e.target.value)}
+                          className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                        >
                           <option>Master</option>
                           <option>Miss</option>
                         </select>
@@ -284,6 +338,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                       <input
                         type="text"
                         required
+                        value={pax.firstName}
+                        onChange={(e) => updatePax(setInfants, idx, "firstName", e.target.value)}
                         placeholder="Enter first & middle name"
                         className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                       />
@@ -294,6 +350,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                       <input
                         type="text"
                         required
+                        value={pax.lastName}
+                        onChange={(e) => updatePax(setInfants, idx, "lastName", e.target.value)}
                         placeholder="Enter last name"
                         className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
                       />
@@ -305,6 +363,8 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     <input
                       type="date"
                       required
+                      value={pax.dob}
+                      onChange={(e) => updatePax(setInfants, idx, "dob", e.target.value)}
                       className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
                     />
                   </div>

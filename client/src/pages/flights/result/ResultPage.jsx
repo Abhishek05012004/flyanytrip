@@ -665,11 +665,11 @@ export default function ResultPage() {
           onClose={() => setIsModalOpen(false)}
           onContinue={(fare, quoteData) => {
             setIsModalOpen(false);
-            // Adivaha/TBO requires the ResultIndex (and TraceId) exactly as
-            // echoed back by the live FareQuote call — not the original
-            // search-time values. Falls back to the search values only if
-            // the live quote call failed for some reason.
+            // FareQuote returns a freshly validated fare option which includes its own ResultIndex.
+            // Adivaha/TBO SSR requirement: ResultIndex sent to SSR MUST match the ResultIndex returned by FareQuote!
             const activeResultIndex = quoteData?.results?.ResultIndex || fare?.rawOption?.ResultIndex || selectedFlight.rawOption?.ResultIndex;
+            // Prefer the TraceId echoed back by the live Fare Quote call (fetched
+            // when the fare modal opened) over the original search TraceId.
             const activeTraceId = quoteData?.traceId || traceId;
             const urlQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&depDate=${encodeURIComponent(depDate)}&adults=${adults}&children=${children}&infants=${infants}&traceId=${encodeURIComponent(activeTraceId || '')}&resultIndex=${encodeURIComponent(activeResultIndex || '')}`;
             navigate(`/flights/book?${urlQuery}`, {

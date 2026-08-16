@@ -65,18 +65,21 @@ export default function BookingSeat({ onContinue, onSeatSelect, onSeatPriceSelec
   const [selectedSeat, setSelectedSeat] = useState("");
   const [selectedSeatPrice, setSelectedSeatPrice] = useState(0);
 
-  const handleSeatClick = (seatCode, price = 0, isTaken = false) => {
+  const handleSeatClick = (seatCode, price = 0, isTaken = false, rawObj = null) => {
     if (isTaken) return;
 
     if (selectedSeat === seatCode) {
       setSelectedSeat("");
       setSelectedSeatPrice(0);
-      onSeatSelect("");
+      onSeatSelect("", null);
       if (onSeatPriceSelect) onSeatPriceSelect(0);
     } else {
       setSelectedSeat(seatCode);
       setSelectedSeatPrice(price);
-      onSeatSelect(seatCode);
+      // Pass the raw SSR seat object up too — Adivaha's booking payload needs
+      // the full SeatDynamic entry (AirlineCode, FlightNumber, Origin,
+      // Destination, Code, RowNo, SeatNo, ...), not just the seat code label.
+      onSeatSelect(seatCode, rawObj);
       if (onSeatPriceSelect) onSeatPriceSelect(price);
     }
   };
@@ -187,7 +190,7 @@ export default function BookingSeat({ onContinue, onSeatSelect, onSeatPriceSelec
                         <button
                           type="button"
                           key={col}
-                          onClick={() => handleSeatClick(seatCode, price, isTaken)}
+                          onClick={() => handleSeatClick(seatCode, price, isTaken, seatData?.rawObj || null)}
                           className={`w-[36px] h-[32px] rounded-md text-[10.5px] border transition-all flex flex-col items-center justify-center select-none cursor-pointer relative ${getSeatStyles(seatCode, seatData)}`}
                           title={seatData ? `Seat ${seatCode}: ${price === 0 ? "Free" : "₹" + price}` : seatCode}
                         >
@@ -213,7 +216,7 @@ export default function BookingSeat({ onContinue, onSeatSelect, onSeatPriceSelec
                         <button
                           type="button"
                           key={col}
-                          onClick={() => handleSeatClick(seatCode, price, isTaken)}
+                          onClick={() => handleSeatClick(seatCode, price, isTaken, seatData?.rawObj || null)}
                           className={`w-[36px] h-[32px] rounded-md text-[10.5px] border transition-all flex flex-col items-center justify-center select-none cursor-pointer relative ${getSeatStyles(seatCode, seatData)}`}
                           title={seatData ? `Seat ${seatCode}: ${price === 0 ? "Free" : "₹" + price}` : seatCode}
                         >

@@ -9,6 +9,7 @@
 
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   Check,
   Copy,
@@ -32,7 +33,10 @@ export default function FlightBookingSuccessPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Figma design default configurations
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+  // 1. Figma design default configurations (only used when a field is
+  // genuinely missing from navigation state, e.g. a stale/direct page load)
   const defaultFlight = {
     airline: "IndiGo",
     code: "6E-204",
@@ -45,19 +49,64 @@ export default function FlightBookingSuccessPage() {
     duration: "2 hours 10 minutes · Non-Stop"
   };
 
-  const defaultPassenger = {
-    name: "Rahul Sharma (Adult)",
-    seat: "15C — Window · Economy",
-    baggage: "7 kg Cabin Only (Saver Fare)",
-    meal: "Vegetarian"
+  const formatDate = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", weekday: "long" });
   };
 
-  const defaultPayment = {
-    baseFare: 3499,
-    taxes: 420,
-    totalPaid: 3919,
-    method: "HDFC Credit Card · XXXX 4521",
-    transactionId: "TXN240215094823"
+  const formatTime = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // 2. Hydrate real booking state passed from PaymentPage:
+  // { flight, fare, basePrice, taxes, totalAmount, selectedSeat, addonsData,
+  //   contact, passengers, pnr, bookingId, paymentId, apiBookingResponse, isLCC }
+  const rawFlight = location.state?.flight;
+  const depIso = rawFlight?.rawOption?.Segments?.[0]?.[0]?.Origin?.DepTime;
+  const arrIso = rawFlight?.rawOption?.Segments?.[0]?.[0]?.Destination?.ArrTime;
+
+  const flight = {
+    ...defaultFlight,
+    ...(rawFlight || {}),
+    route: rawFlight?.fromCode && rawFlight?.toCode
+      ? `${rawFlight.fromCode} → ${rawFlight.toCode}`
+      : (rawFlight?.route || defaultFlight.route),
+    class: location.state?.fare?.title || rawFlight?.class || defaultFlight.class,
+    date: formatDate(depIso) || defaultFlight.date,
+    departure: (formatTime(depIso) && rawFlight?.fromCode) ? `${formatTime(depIso)} — ${rawFlight.fromCode}` : defaultFlight.departure,
+    arrival: (formatTime(arrIso) && rawFlight?.toCode) ? `${formatTime(arrIso)} — ${rawFlight.toCode}` : defaultFlight.arrival
+  };
+
+  // Real passenger list collected in BookingInfo, not a hardcoded name.
+  const realPassengers = Array.isArray(location.state?.passengers) ? location.state.passengers : [];
+  const leadPax = realPassengers.find((p) => p.isLeadPax) || realPassengers[0];
+  const passengerNames = realPassengers.length > 0
+    ? realPassengers.map((p) => `${p.title || ""} ${p.firstName || ""} ${p.lastName || ""}`.trim()).filter(Boolean).join(", ")
+    : "Rahul Sharma (Adult)";
+  const paxCountLabel = realPassengers.length > 0 ? `${realPassengers.length} Passenger${realPassengers.length > 1 ? "s" : ""}` : "1 Adult";
+
+  const realMeal = location.state?.addonsData?.mealObj?.AirlineDescription
+    || (location.state?.addonsData?.meal && location.state.addonsData.meal !== "none" ? location.state.addonsData.meal : null);
+  const realBaggageCount = location.state?.addonsData?.addonObjs?.length || 0;
+
+  const passenger = {
+    name: leadPax ? passengerNames : "Rahul Sharma (Adult)",
+    seat: location.state?.selectedSeat ? `${location.state.selectedSeat} · ${flight.class}` : "System assigned (free)",
+    baggage: realBaggageCount > 0 ? `${realBaggageCount} extra baggage add-on(s) purchased` : "Standard airline allowance",
+    meal: realMeal || "No Preference"
+  };
+
+  const payment = {
+    baseFare: location.state?.basePrice ?? 3499,
+    taxes: location.state?.taxes ?? 420,
+    totalPaid: location.state?.totalAmount ?? 3919,
+    method: "Razorpay",
+    transactionId: location.state?.paymentId || "—"
   };
 
   const defaultRefund = {
@@ -65,40 +114,19 @@ export default function FlightBookingSuccessPage() {
     method: "Original payment method",
     expectedBy: "5–7 business days"
   };
+  const refund = { ...defaultRefund, ...(location.state?.refund || {}) };
 
-  // 2. Hydrate states from navigation context, or fall back to Figma design defaults
-  const flight = {
-    ...defaultFlight,
-    ...(location.state?.flight || {}),
-    route: location.state?.flight?.route || defaultFlight.route,
-    date: location.state?.flight?.date || defaultFlight.date
-  };
-
-  const passenger = {
-    ...defaultPassenger,
-    ...(location.state?.passenger || {})
-  };
-
-  const payment = {
-    ...defaultPayment,
-    baseFare: location.state?.basePrice || defaultPayment.baseFare,
-    taxes: location.state?.taxes || defaultPayment.taxes,
-    totalPaid: location.state?.totalAmount || defaultPayment.totalPaid
-  };
-
-  const refund = {
-    ...defaultRefund,
-    ...(location.state?.refund || {})
-  };
-
-  const pnr = location.state?.pnr || "FLY8K2M4";
-  const userEmail = location.state?.email || "user@email.com";
+  const pnr = location.state?.pnr || location.state?.apiBookingResponse?.PNR || "FLY8K2M4";
+  const bookingId = location.state?.bookingId || location.state?.apiBookingResponse?.BookingId || null;
+  const userEmail = location.state?.contact?.email || "user@email.com";
 
   // 3. Interactive Component States
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(null);
   const [actionStatus, setActionStatus] = useState("");
+  const [isEmailing, setIsEmailing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleCopyPNR = () => {
     navigator.clipboard.writeText(pnr);
@@ -109,6 +137,54 @@ export default function FlightBookingSuccessPage() {
   const showStatus = (message) => {
     setActionStatus(message);
     setTimeout(() => setActionStatus(""), 4000);
+  };
+
+  // Real "Email Ticket" action — asks the server to (re)send the voucher
+  // email for this booking, instead of just showing a fake toast.
+  const handleEmailTicket = async () => {
+    if (!bookingId) {
+      showStatus("Booking ID unavailable — cannot resend email.");
+      return;
+    }
+    try {
+      setIsEmailing(true);
+      await axios.post(`${API_BASE_URL}/flights/resend-ticket-email`, { bookingId, email: userEmail });
+      showStatus(`Ticket & invoice PDF dispatched to: ${userEmail}`);
+    } catch (err) {
+      console.error("Error resending ticket email:", err.response?.data || err.message);
+      showStatus(err.response?.data?.message || "Could not send email right now. Please try again.");
+    } finally {
+      setIsEmailing(false);
+    }
+  };
+
+  // Real "Download Boarding Pass" / voucher action — pulls the actual PDF
+  // generated from this booking's saved DB record.
+  const handleDownloadVoucher = async () => {
+    if (!bookingId) {
+      showStatus("Booking ID unavailable — cannot download voucher.");
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      const res = await fetch(`${API_BASE_URL}/flights/booking-pdf/${bookingId}`);
+      if (!res.ok) throw new Error("Voucher not available yet");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FlyAnyTrip_Voucher_${bookingId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showStatus("Your booking voucher PDF has downloaded.");
+    } catch (err) {
+      console.error("Error downloading voucher:", err);
+      showStatus("Could not download the voucher right now. Please try again shortly.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -130,14 +206,14 @@ export default function FlightBookingSuccessPage() {
         <section className="w-full bg-gradient-to-br from-[#155DFC] to-[#193CB8] rounded-[22.5px] p-[37.5px] text-white flex flex-col items-center justify-center relative overflow-hidden shadow-xs min-h-[358px]">
           {/* Background Image: Flight Attendant (Left) */}
           <img
-            src="/assets/booking/flight_attendant.png"
+            src="/assets/booking/flight_attendant.webp"
             alt="Flight Attendant"
             className="absolute left-0 bottom-0 h-full w-auto object-contain pointer-events-none opacity-20 sm:opacity-40 lg:opacity-100 z-0 select-none"
           />
 
           {/* Background Image: Airplane Flying (Right) */}
           <img
-            src="/assets/booking/airplane_flying.png"
+            src="/assets/booking/airplane_flying.webp"
             alt="Airplane Flying"
             className="absolute right-0 bottom-0 h-[60%] sm:h-[80%] lg:h-full w-auto object-contain pointer-events-none opacity-30 sm:opacity-50 lg:opacity-100 z-0 select-none"
           />
@@ -251,8 +327,8 @@ export default function FlightBookingSuccessPage() {
               {/* Data Rows */}
               <div className="flex flex-col gap-[4px]">
                 <div className="flex items-center justify-between py-[8px] border-b border-gray-100/70">
-                  <span className="text-[14px] font-semibold text-gray-400">Passenger</span>
-                  <span className="text-[16px] font-semibold text-gray-800">{passenger.name}</span>
+                  <span className="text-[14px] font-semibold text-gray-400">{paxCountLabel}</span>
+                  <span className="text-[16px] font-semibold text-gray-800 text-right">{passenger.name}</span>
                 </div>
                 <div className="flex items-center justify-between py-[8px] border-b border-gray-100/70">
                   <span className="text-[14px] font-semibold text-gray-400">Seat</span>
@@ -416,20 +492,22 @@ export default function FlightBookingSuccessPage() {
               <div className="flex flex-col gap-[10px] mt-1">
                 {/* Download Boarding Pass */}
                 <button
-                  onClick={() => showStatus("Preparing PDF download... Your Boarding Pass is downloading.")}
-                  className="w-full bg-[#FE2C1C] hover:bg-[#D82212] active:scale-98 text-white py-[11.25px] rounded-[10px] font-bold text-[13.125px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                  onClick={handleDownloadVoucher}
+                  disabled={isDownloading}
+                  className="w-full bg-[#FE2C1C] hover:bg-[#D82212] active:scale-98 text-white py-[11.25px] rounded-[10px] font-bold text-[13.125px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-60"
                 >
                   <Download className="w-[14px] h-[14px]" />
-                  <span>Download Boarding Pass</span>
+                  <span>{isDownloading ? "Preparing PDF…" : "Download Boarding Pass"}</span>
                 </button>
 
                 {/* Email Ticket */}
                 <button
-                  onClick={() => showStatus(`Ticket & invoice PDF dispatched to: ${userEmail}`)}
-                  className="w-full border border-gray-200 text-gray-800 hover:bg-gray-50 active:scale-98 py-[9.375px] rounded-[10px] font-bold text-[13.125px] flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  onClick={handleEmailTicket}
+                  disabled={isEmailing}
+                  className="w-full border border-gray-200 text-gray-800 hover:bg-gray-50 active:scale-98 py-[9.375px] rounded-[10px] font-bold text-[13.125px] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60"
                 >
                   <Mail className="w-[13px] h-[13px]" />
-                  <span>Email Ticket</span>
+                  <span>{isEmailing ? "Sending…" : "Email Ticket"}</span>
                 </button>
 
                 {/* Web Check-in */}

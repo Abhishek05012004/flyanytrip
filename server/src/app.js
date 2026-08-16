@@ -8,6 +8,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Root route
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Trip Backend API is running",
+    timestamp: new Date()
+  });
+});
+
 // Routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date() });

@@ -216,17 +216,37 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
   const [selectedFareIdx, setSelectedFareIdx] = useState(0);
   const currentFare = dynamicFares[selectedFareIdx] || dynamicFares[0];
 
+  // Handle scroll detection
+  const checkScrollState = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftScroll(scrollLeft > 5);
+      setShowRightScroll(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    checkScrollState();
+    window.addEventListener("resize", checkScrollState);
+    return () => window.removeEventListener("resize", checkScrollState);
+  }, [dynamicFares]);
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      // Scroll by 3 card widths + gaps
+      scrollContainerRef.current.scrollBy({ left: scrollContainerRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -scrollContainerRef.current.clientWidth, behavior: "smooth" });
+    }
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [continueError, setContinueError] = useState(null);
 
-  // The mount-time FareQuote effect above only re-prices flight.rawOption
-  // (the cheapest/default tier shown on the results card) — it does NOT
-  // know which fare tier the user ends up clicking in this modal. Adivaha
-  // rejects SSR/Book calls whose ResultIndex doesn't match the ResultIndex
-  // last confirmed via FareQuote (ErrorCode 3: "Invalid ResultIndex. It
-  // should be same with Farequote ResultIndex"), so before leaving this
-  // modal we always re-quote whichever tier is actually selected and hand
-  // that fresh TraceId/ResultIndex forward — never the stale mount-time one.
   const handleContinueClick = async () => {
     const selectedResultIndex = currentFare?.rawOption?.ResultIndex || flight.rawOption?.ResultIndex;
     setContinueError(null);
@@ -238,6 +258,7 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
 
     try {
       setIsSubmitting(true);
+      // Re-quote the exact selected fare tier to get its fresh ResultIndex & confirmed price
       const quoteRes = await axios.post(`${API_BASE_URL}/flights/fare-quote`, {
         TraceId: traceId,
         ResultIndex: selectedResultIndex
@@ -274,34 +295,6 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
       }
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Handle scroll detection
-  const checkScrollState = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setShowLeftScroll(scrollLeft > 5);
-      setShowRightScroll(scrollLeft < scrollWidth - clientWidth - 5);
-    }
-  };
-
-  useEffect(() => {
-    checkScrollState();
-    window.addEventListener("resize", checkScrollState);
-    return () => window.removeEventListener("resize", checkScrollState);
-  }, [dynamicFares]);
-
-  const handleScrollRight = () => {
-    if (scrollContainerRef.current) {
-      // Scroll by 3 card widths + gaps
-      scrollContainerRef.current.scrollBy({ left: scrollContainerRef.current.clientWidth, behavior: "smooth" });
-    }
-  };
-
-  const handleScrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -scrollContainerRef.current.clientWidth, behavior: "smooth" });
     }
   };
 

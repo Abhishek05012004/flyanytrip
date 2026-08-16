@@ -83,6 +83,27 @@ export default function BookingPage() {
   const traceId = location.state?.traceId || savedState?.traceId || searchParams.get("traceId");
   const resultIndex = location.state?.resultIndex || savedState?.resultIndex || searchParams.get("resultIndex");
 
+  // CRITICAL: `flight.rawOption` is whatever ResultPage's flightSearch call
+  // returned — a summarized option, not a confirmed/lockable one. Adivaha's
+  // FareQuote is what actually validates and confirms the fare (fresh
+  // TraceId/ResultIndex/Fare breakdown), and ResultPage already calls it via
+  // FareModal before navigating here, passing the result as
+  // `location.state.quoteData.results`. That freshly-quoted object was only
+  // ever used to build the URL's traceId/resultIndex query params — the
+  // *Fare object itself* kept coming from the stale search-time
+  // `flight.rawOption.Fare` everywhere else (fare display AND, critically,
+  // the `Passengers[].Fare` sent to the actual booking API). Sending a
+  // Search-time Fare object to a booking call that's scoped to a
+  // FareQuote-confirmed TraceId/ResultIndex is exactly the kind of mismatch
+  // Adivaha's gateway would reject with a generic, non-specific error rather
+  // than a clear "Fare mismatch" message — which matches what's being seen.
+  // `quotedRawOption` is the single source of truth from here on: every
+  // downstream use of `flight.rawOption` (SSR, fare math, and the final
+  // booking payload via `effectiveFlight`) should read from it whenever a
+  // FareQuote actually ran for this session.
+  const quotedRawOption = location.state?.quoteData?.results || savedState?.quoteData?.results || null;
+  const effectiveFlight = quotedRawOption ? { ...flight, rawOption: quotedRawOption } : flight;
+
   // Fetch live Fare Quote if state is missing on refresh but URL traceId/resultIndex exist
   React.useEffect(() => {
     const restoreFromFareQuote = async () => {
@@ -151,14 +172,26 @@ export default function BookingPage() {
   // Stepper state: 1 = Info, 2 = Seat, 3 = Personalize, 4 = Payment
   const [step, setStep] = useState(1);
   const [selectedSeat, setSelectedSeat] = useState("");
+  const [selectedSeatObj, setSelectedSeatObj] = useState(null); // raw SSR SeatDynamic entry
   const [seatPrice, setSeatPrice] = useState(0);
   const [addonsData, setAddonsData] = useState({
     meal: "none",
     mealObj: null,
     addons: [],
+    addonObjs: [],
     insurance: false,
     totalAdditional: 0
   });
+
+  // Contact + passenger details collected in Step 1 (BookingInfo). These are
+  // what actually get sent to Adivaha's Passengers[] array at payment time —
+  // previously this data was collected in the form and then discarded.
+  const [bookingInfoData, setBookingInfoData] = useState(null);
+
+  const handleSeatSelect = (seatCode, seatRawObj) => {
+    setSelectedSeat(seatCode);
+    setSelectedSeatObj(seatRawObj || null);
+  };
 
   // SSR Data state from API
   const [ssrData, setSsrData] = useState(null);
@@ -168,8 +201,8 @@ export default function BookingPage() {
   React.useEffect(() => {
     let isMounted = true;
     const fetchSSRData = async () => {
-      const activeTraceId = traceId || flight.rawOption?.TraceId;
-      const activeResultIndex = resultIndex || flight.rawOption?.ResultIndex;
+      const activeTraceId = traceId || effectiveFlight.rawOption?.TraceId;
+      const activeResultIndex = resultIndex || effectiveFlight.rawOption?.ResultIndex;
       if (!activeTraceId || !activeResultIndex) return;
 
       // Avoid re-fetching if SSR data is already cached
@@ -213,8 +246,11 @@ export default function BookingPage() {
   // Success dialog popup state
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
-  // Dynamic Fare Calculations from exact API Response
-  const rawFareObj = location.state?.fare?.rawOption?.Fare || flight.rawOption?.Fare;
+  // Dynamic Fare Calculations from exact API Response.
+  // Prefers the FareQuote-confirmed Fare (quotedRawOption) over anything
+  // else — see the note above `quotedRawOption` for why this matters beyond
+  // just what's shown on screen.
+  const rawFareObj = quotedRawOption?.Fare || location.state?.fare?.rawOption?.Fare || flight.rawOption?.Fare;
   const pubFare = Math.round(rawFareObj?.PublishedFare || fare.price || 3499);
   const basePrice = Math.round(rawFareObj?.BaseFare || pubFare * 0.7);
   const taxes = pubFare - basePrice; // Exact Tax & Fees from API
@@ -252,11 +288,23 @@ export default function BookingPage() {
     navigate("/payment", {
       state: {
         bookingType: "flight",
-        flight,
+        // effectiveFlight carries the FareQuote-confirmed rawOption (Fare,
+        // TraceId, ResultIndex, IsLCC, IsDomestic) — PaymentPage's
+        // buildPassengersPayload() reads Fare straight from here, so this
+        // must be the confirmed one, not the original search-time `flight`.
+        flight: effectiveFlight,
         fare,
         basePrice,
         taxes,
-        totalAmount
+        totalAmount,
+        traceId,
+        resultIndex,
+        selectedSeat,
+        selectedSeatObj,
+        addonsData,
+        ssrData,
+        contact: bookingInfoData?.contact || null,
+        passengers: bookingInfoData?.passengers || []
       }
     });
   };
@@ -288,7 +336,10 @@ export default function BookingPage() {
 
             {step === 1 && (
               <BookingInfo
-                onContinue={() => goToStep(2)}
+                onContinue={(data) => {
+                  setBookingInfoData(data);
+                  goToStep(2);
+                }}
                 adultsCount={adultsCount}
                 childrenCount={childrenCount}
                 infantsCount={infantsCount}
@@ -298,7 +349,7 @@ export default function BookingPage() {
             {step === 2 && (
               <BookingSeat
                 onContinue={() => goToStep(3)}
-                onSeatSelect={setSelectedSeat}
+                onSeatSelect={handleSeatSelect}
                 onSeatPriceSelect={setSeatPrice}
                 ssrData={ssrData}
                 loadingSSR={loadingSSR}

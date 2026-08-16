@@ -101,17 +101,22 @@ export default function BookingPersonalize({ onContinue, onAddonsUpdate, ssrData
     const selectedMealObj = activeMealsList.find(m => m.id === mealId);
     const mealPrice = selectedMealObj?.price || 0;
 
-    const addonsPrice = addons.reduce((sum, aId) => {
-      const price = activeAddonsList.find(item => item.id === aId)?.price || 0;
-      return sum + price;
-    }, 0);
+    const selectedAddonObjs = addons
+      .map((aId) => activeAddonsList.find((item) => item.id === aId))
+      .filter(Boolean);
+
+    const addonsPrice = selectedAddonObjs.reduce((sum, item) => sum + (item.price || 0), 0);
     const insurancePrice = insurance ? 149 : 0;
 
-    // Dispatch total additional sum up to parent
+    // Dispatch total additional sum up to parent, including the raw SSR
+    // objects (rawObj) for the selected meal/baggage — Adivaha's booking
+    // payload needs the full MealDynamic/Baggage entries (AirlineCode,
+    // FlightNumber, Origin, Destination, Code, ...), not just IDs.
     onAddonsUpdate({
       meal: mealId,
       mealObj: selectedMealObj?.rawObj || null,
       addons: addons,
+      addonObjs: selectedAddonObjs.map((item) => item.rawObj).filter(Boolean),
       insurance: insurance,
       totalAdditional: mealPrice + addonsPrice + insurancePrice
     });
