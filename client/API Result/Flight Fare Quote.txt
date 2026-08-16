@@ -1,0 +1,33 @@
+{"status":"200","status_message":"OK","responseData":{"Response":{"Error":{"ErrorCode":0,"ErrorMessage":""},"FlightDetailChangeInfo":null,"IsPriceChanged":false,"ItineraryChangeList":[],"ResponseStatus":1,"Results":{"FareInclusions":[],"FirstNameFormat":"If
+FirstName is missing, Update FirstName as LastName.\r\n\t\t\t
+<br\ /> For UAE Sector- If there is a space in the passenger's last name, then split it (ie, put the name before the
+space in the first name).\r\n\t\t\t
+<br\ /> If the passenger has a single word name in last name so put father name will be the first name as per
+passport.","IsBookableIfSeatNotAvailable":true,"IsExclusiveFare":false,"IsFreeMealAvailable":false,"IsHoldAllowedWithSSR":false,"IsHoldMandatoryWithSSR":false,"LastNameFormat":"If
+LastName is missing, Update LastName and FirstName as FirstName.\r\n\t\t\t
+<br\ /> For UAE Sector - If there is a space in the passenger's given name, then split it (ie, put the name after the
+space in the last name).\r\n\t\t\t
+<br\ /> If the passenger has a single word name in given name so put father name will be the last name as per
+passport.","ResultIndex":"OB68[TBO]CyuP2PnPNfYW7QLH1WgaUFOC6WrisR0JYI6qKXsuCFXFRzJtFW\/DIRL0a1VtRerD7UXqQ318IIgBB75\/fjAs9rGK8fvMAEn5jnI6zp1n6rCnSDDZe924EnMm2kfDJ5BzVvzua0LP9IJWdLn6VSkzkQC
+efmnvWBAuSaJ0MDZnghib2MyGvTZUC5xwvoFsGGxOA\/J8a2cflykZK5bhCzzhnQcVj88369GV9nxiFZAYll1V2DoxpXZTnwYoMZJwao
+UKZAEyWt5UT\/IOOS\/QwQiASh7Bt6j4c4QQXDTCCa0EJk\/FGmsmaRRrrBmAsxQbrWKyPjCTc Bm2GKZyBFpkbOCnIIFBn0UAt7dgL0caDGkx
+AGvVR8APlk8K 7z RADv6kfdAf7PQ\/ETUgdYEp5TEWWuU2dJp2ECtR\/nFO3CVZhS9U3ed1f9Vub7es8EkMS\/Pw3VqnjD\/UTnrQKaJnyvI9oqvz
+mnGFa6cx0NIlSCVB4 rU3SMHW5qsmvE5LG5CRgAaitAA17PXXzfc37qTFqR6kU 7\/81cZfOzbNkFCFeIX0AdrorAIqD1nnWOIT3fmt4\/8lG2
+z8GWKr6Hv\/IXRT3KB6ahQbpTGUZNusGeNxRnqkAY7d3K Bwa2GtsjDwaip08glOYl dhmPvNRcEOvJNx\/W
+8YIV79bl5ZGOcVaXGv5S2k9HTn2tVbtDwhutj ylvOMWAoObHUSqoAgpcc5pnbvBz15pHI\/eh1L431kBDB5A8VeZ1vFL4XXipU1yBAgOM9jHLaV7
+mFb8pahlIjGBdTL9Vn2epJHSP8oZqpkvJODqwHwuTbgluIh8yiIfyP8\/kZ4jc3MIk1f1wIOSWBR7nwM8HnBk69Ru235uF6SXY1anI18RJOkaRU7\/nITV9ntEpJgSluHNngjeVzTOVYnXKJ8QtAxZjCBiznyXC7J7h8nUF0KcRKy3tTUknvkUCCAoFUyXX\/aVeLp8ZeN6kiVkIY0YmyokUd4M4eeRPGeyQ3QrFBENFMRGGFA15YRDjkU9V6iqAcSHbcyqlp2ibZNTZ
+PE6mbJqweJ6hAzt8VMHnqs\/gfMJ Agn1gCRZ6K c8NGyMZP280IdZJ2NLry44pRdoK2FNKBi8vb G9Uv2R\/KRlLfKES50nGlRMwe
+v","Source":6,"IsLCC":true,"IsRefundable":true,"IsPanRequiredAtBook":false,"IsPanRequiredAtTicket":false,"IsPassportRequiredAtBook":false,"IsPassportRequiredAtTicket":false,"GSTAllowed":true,"IsCouponAppilcable":true,"IsGSTMandatory":false,"IsHoldAllowed":true,"AirlineRemark":"6E
+main.","IsPassportFullDetailRequiredAtBook":false,"ResultFareType":"RegularFare","Fare":{"CFARAmount":0,"DCFARAmount":0,"ServiceFeeDisplayType":0,"Currency":"INR","BaseFare":4868,"Tax":1576,"TaxBreakup":[{"key":"K3","value":288},{"key":"UDF","value":152},{"key":"YR","value":50},{"key":"YQTax","value":800},{"key":"OtherTaxes","value":236},{"key":"RcfTax","value":50}],"YQTax":800,"AdditionalTxnFeeOfrd":0,"AdditionalTxnFeePub":0,"PGCharge":0,"OtherCharges":0,"ChargeBU":[{"key":"TBOMARKUP","value":0},{"key":"GLOBALPROCUREMENTCHARGE","value":0},{"key":"CONVENIENCECHARGE","value":0},{"key":"OTHERCHARGE","value":0}],"Discount":0,"PublishedFare":6444,"CommissionEarned":103.67,"PLBEarned":0,"IncentiveEarned":0,"OfferedFare":6381.8,"TdsOnCommission":41.47,"TdsOnPLB":0,"TdsOnIncentive":0,"ServiceFee":0,"TotalBaggageCharges":0,"TotalMealCharges":0,"TotalSeatCharges":0,"TotalSpecialServiceCharges":0},"FareBreakdown":[{"CFARAmount":0,"DCFARAmount":0,"SegmentDetails":[{"CabinBaggage":{"FreeText":"7
+KG","Unit":"KG","Value":"7"},"CheckedInBaggage":{"FreeText":"15
+KG","Unit":"KG","Value":"15"},"FlightInfoIndex":"1"}],"Currency":"INR","PassengerType":1,"PassengerCount":1,"BaseFare":4868,"Tax":1576,"TransactionFee":0,"YQTax":800,"TaxBreakUp":[{"key":"UDF","value":152},{"key":"YR","value":50},{"key":"YQTax","value":800},{"key":"K3","value":288},{"key":"OtherTaxes","value":236},{"key":"RcfTax","value":50}],"AdditionalTxnFeePub":0,"PGCharge":0,"AdditionalTxnFeeOfrd":0,"SupplierReissueCharges":0}],"Segments":[[{"Baggage":"15
+KG","CabinBaggage":"7
+KG","CabinClass":2,"SupplierFareClass":"Flexi","TripIndicator":1,"SegmentIndicator":1,"Airline":{"AirlineCode":"6E","AirlineName":"IndiGo","FlightNumber":"873","FareClass":"FL","OperatingCarrier":""},"Origin":{"Airport":{"AirportCode":"DEL","AirportName":"Indira
+Gandhi
+Airport","Terminal":"1","CityCode":"DEL","CityName":"Delhi","CountryCode":"IN","CountryName":"India"},"DepTime":"2026-08-27T08:20:00"},"Destination":{"Airport":{"AirportCode":"BLR","AirportName":"Kempegowda
+International
+Airport","Terminal":"1","CityCode":"BLR","CityName":"Bangalore","CountryCode":"IN","CountryName":"India"},"ArrTime":"2026-08-27T11:10:00"},"Duration":170,"GroundTime":0,"Mile":0,"StopOver":false,"FlightInfoIndex":"1","StopPoint":"","StopPointArrivalTime":"0001-01-01T00:00:00","StopPointDepartureTime":"0001-01-01T00:00:00","Craft":"321","Remark":null,"IsETicketEligible":true,"FlightStatus":"Confirmed","Status":"","FareClassification":{"Color":"rgb(209,168,213)","Type":"Flexi"}}]],"LastTicketDate":"","TicketAdvisory":null,"FareRules":[{"Origin":"DEL","Destination":"BLR","Airline":"6E","FareBasisCode":"RUIP","FareRuleDetail":"","FareRestriction":"","FareFamilyCode":"","FareRuleIndex":""}],"AirlineCode":"6E","MiniFareRules":[[{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Reissue","From":"0","To":"3","Unit":"DAYS","Details":"INR
+999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Reissue","From":"4","To":"","Unit":"DAYS","Details":"INR
+299","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Cancellation","From":"0","To":"3","Unit":"DAYS","Details":"INR
+2999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Cancellation","From":"4","To":"","Unit":"DAYS","Details":"INR
+1999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false}]],"ValidatingAirline":"6E","FareClassification":{"Color":"rgb(209,168,213)","Type":"Flexi"}},"TraceId":"362c71d1-9597-4f71-948d-b0d37a6af57d"}}}

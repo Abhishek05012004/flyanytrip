@@ -1,0 +1,7 @@
+{"status":"200","status_message":"OK","responseData":{"Response":{"Error":{"ErrorCode":0,"ErrorMessage":""},"FareRules":[{"Airline":"6E","DepartureTime":"2026-08-27T08:20:00","Destination":"BLR","FareBasisCode":"RUIP","FareInclusions":[],"FareRestriction":null,"FareRuleDetail":"The
+FareBasisCode is: RUIP<br \/>
+<br\ />
+<br\ />","FlightId":0,"MiniFareRules":{"Currency":"","Rules":[{"DepartureType":"BEFORE
+DEPARTURE","FromDuration":"PT3H","PaxPenalties":[{"AirlineFee":999,"Currency":"INR","PassengerType":1}],"ToDuration":"P3D","Type":1},{"DepartureType":"BEFORE
+DEPARTURE","FromDuration":"P3D","PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":1},{"DepartureType":"BEFORE
+DEPARTURE","FromDuration":"P3D","PaxPenalties":[{"AirlineFee":2499,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":0}]},"NonRefundable":false,"Origin":"DEL","ReturnDate":"0001-01-01T00:00:00"}],"ResponseStatus":1,"TraceId":"362c71d1-9597-4f71-948d-b0d37a6af57d","NonRefundable":false}}}

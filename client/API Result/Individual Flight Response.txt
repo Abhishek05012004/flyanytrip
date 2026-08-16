@@ -1,0 +1,64 @@
+{
+  "AirlineCode": "IX",
+  "IsLCC": true,
+  "IsRefundable": true,
+  "ResultIndex": "OB1[TBO]sKFQv5e+aX34NUGHzwbIpozbucRvteIW5OwPxVjTyYv0p+GBCfuySxNwL1zIAI7Zj3fNl1v5ggA6BAoa0pWdfrKmV5EAqHsLxU9EZlDyrHK6zHcJRgYySW6lQVhB/lh12QjsLieAE7vVd0FQsLwnzYy2T7JiiHBPUFeOCtqSy+CVLS+wppjVZEPg6cFRN0e672vFYay6+elLuiwJU17LwftxzMAFAMtLZutesXV9ieBT+fESxWAN5g8gLX9UDk0rBb0aInmXVBmBJkTSIb6IRMjdS4D0CnpAxNfERGeRcPVsc9hRYM2ImVv3Z74MJIymz27tS9xHZewjrAD8l7HkcTItD0XCysicBcBPZQXIiCI6L097HuXSAkZRhpeP/otIYbT8KK4d2wDb29iWJbzKbEJcyYNyzfzLSzTxRbnLkH2Pjdgc2QuOKWzMdiRjLGN2WXp8KwzUAiYAm1iCybG0LTRX9UxrPtOmNtti67w9y7Y+T8Cl9JFhIHPbnrf2BOZKiLC8CXUGSRbbNyFvbeQGv1qSGWEP28AiKL5igcYTXEXmcPf22zJ+JEm7daopB35PHch9KmvjYXtrtNwRk/7dMCwlk2pawcuVQnKVmhxXNlPRGyX/9yz4syAgtD44VJIvGOkg3pWa0xvgrWpY2MRSXhZL+R+qpc1PGB0LJRfgn2sO9TwC+lPM3ubQuTUuPegH0fVWE7LjAr3yNkUb/nMhOub60vte0bG6gVSFw2+fuAf5BYCvjC1VTm1WGllmC/WDwUefWRggYp4UhlH5HyxYaZUrEVgMg7TNaDozo3s1EiS9aF4dXdRjX9EJ2SknlwSEZGzAxOCocQvI/atpYTsadMkj+O1UkzGeuqowl5KzxUhJLLzlaA5GlIOv3oavMKaexsGQiRBkaLkr2miLS2ob3escnHRElpcCQn9C2hdpmKlm20uzalLZ1Ouj6n4Ga20PECrNbyBzhZ8UjXsnWaLJIiWPvGhl/Ex0UBNDXkzGKEb/5rnc6BxsfFk0sqpMKeDhNK55HXVnuqOowxceaLm/VQjWu6RzLrHWy/KYmB7Igia7SmXCtehqPG0ypYssq7T21wWY50abci8m4E9o2O74nLT02+fP4xdKheHFgX2jEdPAXG2Za9f8VEU54Bzyx8ToNqMDg2O96OQ7n4AK3uW2TA==",
+  "FareInclusions": [
+    "Cabin Baggage Included",
+    "Check-In baggage Included",
+    "Cancellation fees apply",
+    "Reissue fees apply"
+  ],
+  "Fare": {
+    "BaseFare": 1001,
+    "Tax": 1287,
+    "OtherCharges": 147.5,
+    "PublishedFare": 2435.5,
+    "OfferedFare": 2435.5,
+    "Currency": "INR"
+  },
+  "Segments": [
+    [
+      {
+        "Baggage": "15 KG",
+        "CabinBaggage": "7 KG",
+        "CabinClass": 2,
+        "SupplierFareClass": "Value",
+        "Duration": 130,
+        "Airline": {
+          "AirlineCode": "IX",
+          "AirlineName": "Air India Express",
+          "FlightNumber": "1605",
+          "FareClass": "XC"
+        },
+        "Origin": {
+          "Airport": {
+            "AirportCode": "DEL",
+            "AirportName": "Indira Gandhi Airport",
+            "Terminal": "1",
+            "CityName": "Delhi",
+            "CountryName": "India"
+          },
+          "DepTime": "2026-08-27T06:00:00"
+        },
+        "Destination": {
+          "Airport": {
+            "AirportCode": "BOM",
+            "AirportName": "Chhatrapati Shivaji Maharaj International Airport",
+            "Terminal": "2",
+            "CityName": "Mumbai",
+            "CountryName": "India"
+          },
+          "ArrTime": "2026-08-27T08:10:00"
+        },
+        "FareClassification": {
+          "Type": "Value"
+        }
+      }
+    ]
+  ],
+  "PenaltyCharges": {
+    "CancellationCharge": "₹3,500 fee",
+    "ReissueCharge": "₹3,000 fee"
+  }
+}
