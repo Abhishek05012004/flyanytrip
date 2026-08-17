@@ -240,7 +240,7 @@ export default function HeroSection() {
         results.forEach(item => {
           const datePart = item.DepartureDate.split("T")[0];
           faresMap[datePart] = {
-            fare: item.Fare,
+            fare: Math.max(item.Fare || 0, item.BaseFare || 0),
             isLowest: item.IsLowestFareOfMonth
           };
         });
@@ -261,33 +261,88 @@ export default function HeroSection() {
     }
   };
 
-  // Pre-load fares when from/to/cabinClass change
+  const fetchCalendarFareOfTheDay = async (dateStr, direction = "departure") => {
+    if (!selectedFrom?.code || !selectedTo?.code || !dateStr) return;
+    try {
+      const fromCode = direction === "departure" ? selectedFrom.code : selectedTo.code;
+      const toCode = direction === "departure" ? selectedTo.code : selectedFrom.code;
+
+      const res = await axios.post(`${API_BASE_URL}/flights/update-calendar-fare`, {
+        From_IATACODE: fromCode,
+        To_IATACODE: toCode,
+        departure_date: dateStr,
+        flights_category: cabinClass
+      });
+
+      if (res.data?.responseData?.Response?.SearchResults) {
+        const faresMap = {};
+        res.data.responseData.Response.SearchResults.forEach(item => {
+          const datePart = item.DepartureDate.split("T")[0];
+          faresMap[datePart] = {
+            fare: Math.max(item.Fare || 0, item.BaseFare || 0),
+            isLowest: item.IsLowestFareOfMonth
+          };
+        });
+        if (direction === "departure") {
+          setDepCalendarFares(prev => ({
+            ...prev,
+            ...faresMap
+          }));
+        } else {
+          setRetCalendarFares(prev => ({
+            ...prev,
+            ...faresMap
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Error updating single day calendar fare in hero:", err);
+    }
+  };
+
+  // Clear cached fares when airports or cabin class changes
+  useEffect(() => {
+    setDepCalendarFares({});
+    setRetCalendarFares({});
+  }, [selectedFrom?.code, selectedTo?.code, cabinClass]);
+
+  // Pre-load / refetch fares when active calendar opens or values change
   useEffect(() => {
     if (selectedFrom?.code && selectedTo?.code) {
-      setDepCalendarFares({});
-      setRetCalendarFares({});
       const today = new Date();
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
-      // Fetch departure calendar fares (From -> To)
-      fetchCalendarFaresForMonth(today, "departure");
-      fetchCalendarFaresForMonth(nextMonth, "departure");
+      // Fetch departure fares when departure calendar is open or on initial load
+      if (isCalendarOpen === "departure" || !isCalendarOpen) {
+        fetchCalendarFaresForMonth(today, "departure");
+        fetchCalendarFaresForMonth(nextMonth, "departure");
 
-      const dep = new Date(departureDate);
-      if (dep.getMonth() !== today.getMonth() && dep.getMonth() !== nextMonth.getMonth()) {
-        fetchCalendarFaresForMonth(dep, "departure");
+        const dep = new Date(departureDate);
+        if (dep.getMonth() !== today.getMonth() && dep.getMonth() !== nextMonth.getMonth()) {
+          fetchCalendarFaresForMonth(dep, "departure");
+        }
+
+        if (departureDate) {
+          fetchCalendarFareOfTheDay(departureDate, "departure");
+        }
       }
 
-      // Fetch return calendar fares (To -> From)
-      fetchCalendarFaresForMonth(today, "return");
-      fetchCalendarFaresForMonth(nextMonth, "return");
+      // Fetch return fares when return calendar is open or on initial load
+      if (flightType === "roundtrip" && (isCalendarOpen === "return" || !isCalendarOpen)) {
+        fetchCalendarFaresForMonth(today, "return");
+        fetchCalendarFaresForMonth(nextMonth, "return");
 
-      const ret = new Date(returnDate);
-      if (ret.getMonth() !== today.getMonth() && ret.getMonth() !== nextMonth.getMonth()) {
-        fetchCalendarFaresForMonth(ret, "return");
+        const ret = new Date(returnDate);
+        if (ret.getMonth() !== today.getMonth() && ret.getMonth() !== nextMonth.getMonth()) {
+          fetchCalendarFaresForMonth(ret, "return");
+        }
+
+        if (returnDate) {
+          fetchCalendarFareOfTheDay(returnDate, "return");
+        }
       }
     }
-  }, [selectedFrom?.code, selectedTo?.code, cabinClass]);
+  }, [selectedFrom?.code, selectedTo?.code, cabinClass, departureDate, returnDate, flightType, isCalendarOpen]);
 
   // Handle click outside traveler selector & dropdowns
   useEffect(() => {
@@ -885,8 +940,10 @@ export default function HeroSection() {
                                 nextDay.setDate(nextDay.getDate() + 7);
                                 setReturnDate(nextDay.toISOString().split("T")[0]);
                               }
+                              fetchCalendarFareOfTheDay(selectedStr, "departure");
                             } else {
                               setReturnDate(selectedStr);
+                              fetchCalendarFareOfTheDay(selectedStr, "return");
                             }
                             setIsCalendarOpen(null);
                           }

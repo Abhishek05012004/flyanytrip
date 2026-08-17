@@ -465,6 +465,7 @@ export default function ResultPage() {
           fareType={fareType}
           setFareType={setFareType}
           externalCalendarFares={calendarFares}
+          setExternalCalendarFares={setCalendarFares}
         />
         {loading && (
           <div className="absolute inset-0 bg-transparent cursor-not-allowed z-50 pointer-events-auto" />
@@ -598,11 +599,15 @@ export default function ResultPage() {
                   departure_date: newDateStr,
                   flights_category: cabinClass
                 }).then(res => {
-                  if (res.data?.responseData?.Response?.SearchResults?.[0]) {
-                    const updatedFare = res.data.responseData.Response.SearchResults[0].Fare;
+                  if (res.data?.responseData?.Response?.SearchResults) {
+                    const faresMap = {};
+                    res.data.responseData.Response.SearchResults.forEach(item => {
+                      const datePart = item.DepartureDate.split("T")[0];
+                      faresMap[datePart] = Math.max(item.Fare || 0, item.BaseFare || 0);
+                    });
                     setCalendarFares(prev => ({
                       ...prev,
-                      [newDateStr]: updatedFare
+                      ...faresMap
                     }));
                   }
                 }).catch(err => {

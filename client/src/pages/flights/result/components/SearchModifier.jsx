@@ -110,7 +110,7 @@ const getMergedAirports = (localList, apiList) => {
   return merged;
 };
 
-export default function SearchModifier({ fareType, setFareType, externalCalendarFares }) {
+export default function SearchModifier({ fareType, setFareType, externalCalendarFares, setExternalCalendarFares }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -322,18 +322,28 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
       if (res.data?.responseData?.Response?.SearchResults) {
         const results = res.data.responseData.Response.SearchResults;
         const faresMap = {};
+        const parentFaresMap = {};
         results.forEach(item => {
           const datePart = item.DepartureDate.split("T")[0];
+          const fareVal = Math.max(item.Fare || 0, item.BaseFare || 0);
           faresMap[datePart] = {
-            fare: Math.max(item.Fare || 0, item.BaseFare || 0),
+            fare: fareVal,
             isLowest: item.IsLowestFareOfMonth
           };
+          parentFaresMap[datePart] = fareVal;
         });
         if (direction === "departure") {
           setDepCalendarFares(prev => ({
             ...prev,
             ...faresMap
           }));
+          const isRouteMatching = selectedFrom?.code === fromVal && selectedTo?.code === toVal;
+          if (isRouteMatching && setExternalCalendarFares) {
+            setExternalCalendarFares(prev => ({
+              ...prev,
+              ...parentFaresMap
+            }));
+          }
         } else {
           setRetCalendarFares(prev => ({
             ...prev,
@@ -359,24 +369,34 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
         flights_category: cabinClass
       });
 
-      if (res.data?.responseData?.Response?.SearchResults?.[0]) {
-        const item = res.data.responseData.Response.SearchResults[0];
-        const datePart = item.DepartureDate.split("T")[0];
+      if (res.data?.responseData?.Response?.SearchResults) {
+        const faresMap = {};
+        const parentFaresMap = {};
+        res.data.responseData.Response.SearchResults.forEach(item => {
+          const datePart = item.DepartureDate.split("T")[0];
+          const fareVal = Math.max(item.Fare || 0, item.BaseFare || 0);
+          faresMap[datePart] = {
+            fare: fareVal,
+            isLowest: item.IsLowestFareOfMonth
+          };
+          parentFaresMap[datePart] = fareVal;
+        });
         if (direction === "departure") {
           setDepCalendarFares(prev => ({
             ...prev,
-            [datePart]: {
-              fare: Math.max(item.Fare || 0, item.BaseFare || 0),
-              isLowest: item.IsLowestFareOfMonth
-            }
+            ...faresMap
           }));
+          const isRouteMatching = selectedFrom?.code === fromVal && selectedTo?.code === toVal;
+          if (isRouteMatching && setExternalCalendarFares) {
+            setExternalCalendarFares(prev => ({
+              ...prev,
+              ...parentFaresMap
+            }));
+          }
         } else {
           setRetCalendarFares(prev => ({
             ...prev,
-            [datePart]: {
-              fare: Math.max(item.Fare || 0, item.BaseFare || 0),
-              isLowest: item.IsLowestFareOfMonth
-            }
+            ...faresMap
           }));
         }
       }
@@ -385,40 +405,52 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
     }
   };
 
+  // Clear cached fares when airports or cabin class changes
+  useEffect(() => {
+    setDepCalendarFares({});
+    setRetCalendarFares({});
+    if (setExternalCalendarFares) {
+      setExternalCalendarFares({});
+    }
+  }, [selectedFrom?.code, selectedTo?.code, cabinClass]);
+
   useEffect(() => {
     if (selectedFrom?.code && selectedTo?.code) {
-      setDepCalendarFares({});
-      setRetCalendarFares({});
       const today = new Date();
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
-      // Fetch departure calendar fares (From -> To)
-      fetchCalendarFaresForMonth(today, "departure");
-      fetchCalendarFaresForMonth(nextMonth, "departure");
+      // Fetch departure calendar fares (From -> To) when departure calendar is open or on initial load
+      if (isCalendarOpen === "departure" || !isCalendarOpen) {
+        fetchCalendarFaresForMonth(today, "departure");
+        fetchCalendarFaresForMonth(nextMonth, "departure");
 
-      const dep = new Date(departureDate);
-      if (dep.getMonth() !== today.getMonth() && dep.getMonth() !== nextMonth.getMonth()) {
-        fetchCalendarFaresForMonth(dep, "departure");
+        const dep = new Date(departureDate);
+        if (dep.getMonth() !== today.getMonth() && dep.getMonth() !== nextMonth.getMonth()) {
+          fetchCalendarFaresForMonth(dep, "departure");
+        }
+
+        // Fetch real-time updated calendar fare of the day directly to keep search modifier calendar in sync
+        if (departureDate) {
+          fetchCalendarFareOfTheDay(departureDate, "departure");
+        }
       }
 
-      // Fetch return calendar fares (To -> From)
-      fetchCalendarFaresForMonth(today, "return");
-      fetchCalendarFaresForMonth(nextMonth, "return");
+      // Fetch return calendar fares (To -> From) when return calendar is open or on initial load
+      if (flightType === "roundtrip" && (isCalendarOpen === "return" || !isCalendarOpen)) {
+        fetchCalendarFaresForMonth(today, "return");
+        fetchCalendarFaresForMonth(nextMonth, "return");
 
-      const ret = new Date(returnDate);
-      if (ret.getMonth() !== today.getMonth() && ret.getMonth() !== nextMonth.getMonth()) {
-        fetchCalendarFaresForMonth(ret, "return");
-      }
+        const ret = new Date(returnDate);
+        if (ret.getMonth() !== today.getMonth() && ret.getMonth() !== nextMonth.getMonth()) {
+          fetchCalendarFaresForMonth(ret, "return");
+        }
 
-      // Fetch real-time updated calendar fare of the day directly to keep search modifier calendar in sync
-      if (departureDate) {
-        fetchCalendarFareOfTheDay(departureDate, "departure");
-      }
-      if (returnDate && flightType === "roundtrip") {
-        fetchCalendarFareOfTheDay(returnDate, "return");
+        if (returnDate) {
+          fetchCalendarFareOfTheDay(returnDate, "return");
+        }
       }
     }
-  }, [selectedFrom?.code, selectedTo?.code, cabinClass, departureDate, returnDate, flightType]);
+  }, [selectedFrom?.code, selectedTo?.code, cabinClass, departureDate, returnDate, flightType, isCalendarOpen]);
 
   const getWeekday = (dateStr) => {
     if (!dateStr) return "";
@@ -833,6 +865,7 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                     nextDay.setDate(nextDay.getDate() + 7);
                     setReturnDate(nextDay.toISOString().split("T")[0]);
                   }
+                  fetchCalendarFareOfTheDay(selectedStr, "departure");
                   setIsCalendarOpen(null);
                 })}
               </div>
@@ -899,6 +932,7 @@ export default function SearchModifier({ fareType, setFareType, externalCalendar
                 </div>
                 {renderCalendarMonth(currentCalDate.getFullYear(), currentCalDate.getMonth(), returnDate, (selectedStr) => {
                   setReturnDate(selectedStr);
+                  fetchCalendarFareOfTheDay(selectedStr, "return");
                   setIsCalendarOpen(null);
                 })}
               </div>
