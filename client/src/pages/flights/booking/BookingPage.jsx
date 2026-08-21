@@ -101,7 +101,7 @@ export default function BookingPage() {
   // `quotedRawOption` is the single source of truth from here on: every
   // downstream use of `flight.rawOption` (SSR, fare math, and the final
   // booking payload via `effectiveFlight`) should read from it whenever a
-  // FareQuote actually ran for this session.
+  // FareQuote actually ran for this session
   const quotedRawOption = location.state?.quoteData?.results || savedState?.quoteData?.results || null;
   const effectiveFlight = quotedRawOption ? { ...flight, rawOption: quotedRawOption } : flight;
 
