@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, Calendar, User, Plane, Clock, ShieldCheck, Tag, Backpack, Briefcase, ChevronRight, ChevronLeft, Building, Loader2 } from "lucide-react";
 import axios from "axios";
+import { getPerAdultFare, getTotalTravellerCount } from "../../../../utils/fareBreakdown";
 
-export default function FareModal({ flight, traceId, onClose, onContinue }) {
+export default function FareModal({ flight, traceId, onClose, onContinue, adults, children, infants }) {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
   const [loadingQuote, setLoadingQuote] = useState(false);
@@ -165,6 +166,14 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
     const rawClass = opt.SupplierFareClass || opt.FareClassification?.Type || (idx === 0 ? "Saver" : idx === 1 ? "Value" : "Flexi");
     const fareTitle = rawClass.toLowerCase().startsWith("economy") ? rawClass : `Economy ${rawClass}`;
     const price = Math.round(opt.Fare?.PublishedFare || 0);
+    // "per adult" on each fare-class card must be the REAL per-adult price
+    // (Adivaha's FareBreakdown Adult row total / adult count), not the
+    // combined total charged for every adult/child/infant on the search.
+    const totalTravellers = getTotalTravellerCount(
+      opt,
+      Number(adults || 1) + Number(children || 0) + Number(infants || 0) || 1
+    );
+    const perAdultPrice = Math.round(getPerAdultFare(opt, price));
     const segs = opt.Segments?.[0] || [];
     const fLeg = segs[0] || {};
     const cBaggage = fLeg.CabinBaggage || "7 KG";
@@ -205,6 +214,8 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
       badge,
       badgeType,
       price,
+      perAdultPrice,
+      totalTravellers,
       cabin: cBaggage,
       checkIn: `Check-in: ${chkBaggage}`,
       cancelList,
@@ -269,6 +280,13 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
         throw new Error(respObj.Error.ErrorMessage || "This fare could not be confirmed");
       }
       if (respObj?.Results) {
+        // Some fares (visible on the search result as IsCouponAppilcable:
+        // true) are locked behind a real promo/coupon code — Adivaha's
+        // FareQuote confirms this definitively via IsPromoCodeRequired.
+        // We don't block these anymore: `IsPromoCodeRequired` rides along
+        // inside respObj.Results (assigned to quoteData.results below, which
+        // becomes flight.rawOption on the Payment page), where the user is
+        // prompted for a real promo code before they can pay for this fare.
         const updatedQuoteData = {
           results: respObj.Results,
           isPriceChanged: respObj.IsPriceChanged,
@@ -428,11 +446,21 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
                           )}
 
                           <div className="flex items-baseline space-x-1.5">
-                            <span className="text-[20px] font-black text-[#272727]">₹{item.price.toLocaleString()}</span>
+                            <span className="text-[20px] font-black text-[#272727]">₹{item.perAdultPrice.toLocaleString()}</span>
                             <span className="text-[11px] text-[#7E7E7E] font-bold">per adult</span>
                           </div>
                         </div>
                       </div>
+
+                      {/* Total price across every traveller on this search,
+                          shown only when there's more than one, so it's
+                          clear the per-adult figure above isn't the amount
+                          that will actually be charged. */}
+                      {item.totalTravellers > 1 && (
+                        <p className="text-[11px] text-[#9A9A9A] font-semibold -mt-2.5 mb-3">
+                          Total for {item.totalTravellers} travellers: ₹{item.price.toLocaleString()}
+                        </p>
+                      )}
 
                       {/* Fare Class Name */}
                       <h4 className="font-black text-[13px] text-[#7E7E7E] uppercase tracking-wider mb-3.5">{item.title}</h4>
@@ -527,6 +555,11 @@ export default function FareModal({ flight, traceId, onClose, onContinue }) {
               Selected: <strong className="text-[#272727] font-extrabold">{currentFare.title}</strong>
             </span>
             <span className="text-[24px] font-black text-[#272727] leading-none mt-1">₹{currentFare.price.toLocaleString()}</span>
+            {currentFare.totalTravellers > 1 && (
+              <span className="text-[11px] text-[#7E7E7E] font-semibold mt-0.5">
+                Total for {currentFare.totalTravellers} travellers (₹{currentFare.perAdultPrice.toLocaleString()} per adult)
+              </span>
+            )}
             {continueError && (
               <span className="text-[11px] text-red-600 font-semibold mt-1">{continueError}</span>
             )}

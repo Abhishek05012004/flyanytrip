@@ -174,10 +174,19 @@ export default function Card({ flight, onSelect }) {
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#7E7E7E] block mt-1.5">{flight.toCode}</span>
         </div>
 
-        {/* Price Block (Rightmost in top row) */}
+        {/* Price Block (Rightmost in top row) — flight.price is the REAL
+            per-adult fare (from Adivaha's FareBreakdown), not the combined
+            total for every traveller. When more than one traveller is on
+            the search, show the all-inclusive total underneath so the
+            relationship between the two numbers is clear. */}
         <div className="text-right w-full md:w-36 flex md:flex-col items-end justify-center pt-3 md:pt-0">
           <span className="text-[24px] font-black text-[#272727] leading-none">{flight.price}</span>
           <span className="text-[11px] text-[#7E7E7E] font-bold block mt-1.5">per adult</span>
+          {flight.totalTravellers > 1 && (
+            <span className="text-[10.5px] text-[#9A9A9A] font-semibold block mt-1">
+              {flight.totalTravellers} travellers: {flight.totalPriceStr}
+            </span>
+          )}
         </div>
 
       </div>

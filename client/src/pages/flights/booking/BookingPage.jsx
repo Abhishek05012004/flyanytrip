@@ -21,6 +21,7 @@ import BookingSeat from "./components/BookingSeat";
 import BookingPersonalize from "./components/BookingPersonalize";
 import BookingSummary from "./components/BookingSummary";
 import FareSummary from "./components/FareSummary";
+import { getFareBreakdownByType } from "../../../utils/fareBreakdown";
 
 export default function BookingPage() {
   const location = useLocation();
@@ -201,8 +202,19 @@ export default function BookingPage() {
   React.useEffect(() => {
     let isMounted = true;
     const fetchSSRData = async () => {
-      const activeTraceId = traceId || effectiveFlight.rawOption?.TraceId;
-      const activeResultIndex = resultIndex || effectiveFlight.rawOption?.ResultIndex;
+      // BUG FIX: this used to prefer the top-level `traceId`/`resultIndex`
+      // (derived from the URL / the ORIGINAL search-time state) over
+      // `effectiveFlight.rawOption` (the FareQuote-confirmed object) — the
+      // exact opposite of what the big comment above `quotedRawOption`
+      // documents as the intended single source of truth. When a user
+      // picks a non-default fare tier in FareModal, or the page restores
+      // from a fresh fare-quote after a refresh, those two can genuinely
+      // differ, and Adivaha's FlightSSR endpoint hard-requires the
+      // ResultIndex to be the one FareQuote most recently returned —
+      // sending the stale one is exactly what produced "Invalid
+      // ResultIndex. It should be same with Farequote ResultIndex".
+      const activeTraceId = effectiveFlight.rawOption?.TraceId || traceId;
+      const activeResultIndex = effectiveFlight.rawOption?.ResultIndex || resultIndex;
       if (!activeTraceId || !activeResultIndex) return;
 
       // Avoid re-fetching if SSR data is already cached
@@ -257,6 +269,24 @@ export default function BookingPage() {
   const additionalAmount = addonsData.totalAdditional + seatPrice;
   const totalAmount = pubFare + additionalAmount;
 
+  // Full Adult/Child/Infant breakdown for the Price Summary panel, sourced
+  // straight from Adivaha's FareBreakdown array on the option that's
+  // actually confirmed for this booking (quotedRawOption when a FareQuote
+  // ran, falling back the same way rawFareObj does above). `taxesBreakdownTotal`
+  // is the sum of every row's tax, which should reconcile with `taxes`
+  // above (both derive from the same Fare object) — summing it explicitly
+  // keeps the two panels (per-type rows + tax line) internally consistent
+  // even if BaseFare/Tax rounding differs slightly from PublishedFare - BaseFare.
+  const activeRawOptionForBreakdown = quotedRawOption || location.state?.fare?.rawOption || flight.rawOption;
+  const fareBreakdown = getFareBreakdownByType(activeRawOptionForBreakdown);
+  // Includes each row's reconciled `totalLeftover` share (OtherCharges,
+  // PGCharge, etc. that Adivaha's FareBreakdown doesn't split by passenger
+  // type — see utils/fareBreakdown.js header) so Adult/Child/Infant rows +
+  // this tax line always sum to exactly the Grand Total below.
+  const taxesBreakdownTotal = fareBreakdown
+    ? Math.round(fareBreakdown.reduce((sum, row) => sum + row.totalTax + row.totalLeftover, 0))
+    : taxes;
+
   // Setup history interception on mount
   React.useEffect(() => {
     // Push the first step into history state so back button has something to pop
@@ -296,6 +326,7 @@ export default function BookingPage() {
         fare,
         basePrice,
         taxes,
+        taxesBreakdownTotal,
         totalAmount,
         traceId,
         resultIndex,
@@ -304,7 +335,8 @@ export default function BookingPage() {
         addonsData,
         ssrData,
         contact: bookingInfoData?.contact || null,
-        passengers: bookingInfoData?.passengers || []
+        passengers: bookingInfoData?.passengers || [],
+        sharedDetails: bookingInfoData?.sharedDetails || null
       }
     });
   };
@@ -372,6 +404,8 @@ export default function BookingPage() {
             <BookingSummary flight={flight} />
 
             <FareSummary
+              breakdown={fareBreakdown}
+              taxesTotal={taxesBreakdownTotal}
               basePrice={basePrice}
               taxes={taxes}
               additionalAmount={additionalAmount}

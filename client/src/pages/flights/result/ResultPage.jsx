@@ -22,6 +22,7 @@ import Filters from "./components/Filters";
 import FareCalendar from "./components/FareCalendar";
 import Card from "./components/Card";
 import FareModal from "./components/FareModal";
+import { getPerAdultFare, getTotalTravellerCount } from "../../../utils/fareBreakdown";
 
 export default function ResultPage() {
   const navigate = useNavigate();
@@ -317,6 +318,23 @@ export default function ResultPage() {
             const priceVal = option.Fare?.PublishedFare || 0;
             const priceStr = `₹${Math.round(priceVal).toLocaleString()}`;
 
+            // Card.jsx labels this figure "per adult" — it must actually be
+            // the per-adult price, not the combined total for every
+            // adult/child/infant on the search. Adivaha's FareBreakdown
+            // array (present on every search result option) gives the
+            // exact base+tax total charged for each PassengerType, so the
+            // true per-adult fare is that Adult row's total divided by the
+            // adult count. Previously `priceVal` (the grand total for ALL
+            // passengers) was shown here directly, so a 2-adult search
+            // displayed the 2-adult total mislabeled as a single "per adult"
+            // price.
+            const totalTravellers = getTotalTravellerCount(
+              option,
+              Number(adults) + Number(children) + Number(infants) || 1
+            );
+            const perAdultFareVal = getPerAdultFare(option, priceVal);
+            const perAdultPriceStr = `₹${Math.round(perAdultFareVal).toLocaleString()}`;
+
             let stopsText = "Non-stop";
             if (segments.length === 2) stopsText = "1 Stop";
             else if (segments.length > 2) stopsText = `${segments.length - 1} Stops`;
@@ -347,8 +365,11 @@ export default function ResultPage() {
               toCode: lastLeg.Destination?.AirportCode || lastLeg.Destination?.Airport?.AirportCode || to,
               duration: formatDuration(totalDurationMin),
               stops: stopsText,
-              price: priceStr,
+              price: perAdultPriceStr,
               priceRaw: priceVal,
+              perAdultPriceRaw: perAdultFareVal,
+              totalPriceStr: priceStr,
+              totalTravellers,
               durationRaw: totalDurationMin,
               save: isRefundable ? "Refundable" : "Non-Refundable",
               flexi: `Baggage: ${baggage}`,
@@ -667,6 +688,9 @@ export default function ResultPage() {
         <FareModal
           flight={selectedFlight}
           traceId={traceId}
+          adults={adults}
+          children={children}
+          infants={infants}
           onClose={() => setIsModalOpen(false)}
           onContinue={(fare, quoteData) => {
             setIsModalOpen(false);

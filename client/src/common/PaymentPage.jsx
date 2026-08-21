@@ -32,6 +32,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import BookingSummary from "../pages/flights/booking/components/BookingSummary";
 import FareSummary from "../pages/flights/booking/components/FareSummary";
+import { getFareBreakdownByType, buildPerPassengerFare } from "../utils/fareBreakdown";
 
 // Vector QR Code Component for pixel-perfect, clean rendering without remote assets
 const QRCodeSVG = () => (
@@ -118,6 +119,16 @@ export default function PaymentPage() {
   const basePrice = location.state?.basePrice || rawFlight.basePrice || 3499;
   const taxes = location.state?.taxes || rawFlight.taxes || 420;
 
+  // Full Adult/Child/Infant breakdown for the Price Summary panel — reuse
+  // whatever BookingPage already computed (passed via location.state) when
+  // available, otherwise derive it fresh from the confirmed rawOption so a
+  // direct/refreshed landing on this page still shows real numbers.
+  const fareBreakdown = getFareBreakdownByType(rawFlight?.rawOption);
+  // See BookingPage.jsx: includes each row's reconciled `totalLeftover`
+  // share so the breakdown rows always sum to the Grand Total.
+  const taxesBreakdownTotal = location.state?.taxesBreakdownTotal
+    ?? (fareBreakdown ? Math.round(fareBreakdown.reduce((sum, row) => sum + row.totalTax + row.totalLeftover, 0)) : taxes);
+
   const flight = {
     ...defaultFlight,
     ...rawFlight,
@@ -136,6 +147,16 @@ export default function PaymentPage() {
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState("");
+
+  // Adivaha-side promo code. Distinct from `couponInput`/`appliedCoupon`
+  // above, which are FlyAnyTrip's own marketing discount codes (FIRSTFLY,
+  // FLY200, HDFC15) that only affect totalAmount. This one is a booking
+  // requirement the AIRLINE/provider itself imposes on certain fares
+  // (Adivaha's FareQuote flags this via `IsPromoCodeRequired`) — it doesn't
+  // change the price, it's just a mandatory field ticketForLcc/flightBook
+  // won't accept as empty for those fares. The user supplies whatever real
+  // promo code they have for that fare; Adivaha validates it on booking.
+  const [airlinePromoCode, setAirlinePromoCode] = useState("");
 
   // Payment states
   const [upiId, setUpiId] = useState("");
@@ -158,6 +179,7 @@ export default function PaymentPage() {
   const [loadingWallet, setLoadingWallet] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
 
   const fetchWalletBalance = async () => {
     try {
@@ -212,6 +234,16 @@ export default function PaymentPage() {
     ? Math.round(passedTotalAmount)
     : basePrice + taxes + additionalAmount) - discount;
 
+  // This fare requires a real, airline-side promo code (Adivaha's FareQuote
+  // flags it via IsPromoCodeRequired) — Pay is disabled until the user has
+  // typed one into the field below. Unlike the earlier version of this
+  // page, this does NOT block the fare outright; it just makes sure we
+  // never send an empty/placeholder value for a fare that actually needs
+  // one (that's what produced "PromoCode is mandatory for this Booking"
+  // after payment).
+  const promoCodeRequired = !!flight.rawOption?.IsPromoCodeRequired;
+  const promoCodeMissing = promoCodeRequired && !airlinePromoCode.trim();
+
   // Coupon handling
   const handleApplyCoupon = (e) => {
     if (e) e.preventDefault();
@@ -258,6 +290,8 @@ export default function PaymentPage() {
   // selections made in the UI today (BookingSeat/BookingPersonalize only
   // support a single selection, not one per traveller) — extend this if you
   // add per-passenger add-on selection later.
+  const COUNTRY_NAMES = { IN: "India", US: "United States", GB: "United Kingdom", AE: "United Arab Emirates", AU: "Australia", CA: "Canada", SG: "Singapore" };
+
   const buildPassengersPayload = () => {
     const rawFare = flight.rawOption?.Fare || null;
     const seatObj = location.state?.selectedSeatObj || null;
@@ -269,6 +303,12 @@ export default function PaymentPage() {
     const contactNo = (contact.mobile || "9876543210").replace(/\D/g, "") || "9876543210";
     const email = contact.email || location.state?.email || "user@flyanytrip.com";
 
+    // Nationality/City/AddressLine1 collected once in BookingInfo's shared
+    // "Address & Nationality" block and applied to every passenger — see
+    // that component for why this isn't asked per-traveller.
+    const shared = location.state?.sharedDetails || {};
+    const countryCode = shared.nationality || "IN";
+
     // Fallback to a single default adult if BookingInfo data is missing
     // (e.g. someone deep-linked straight into /payment during testing).
     const sourcePassengers = Array.isArray(statePassengers) && statePassengers.length > 0
@@ -276,6 +316,7 @@ export default function PaymentPage() {
       : [{ paxType: 1, title: "Mr", firstName: "Rahul", lastName: "Sharma", isLeadPax: true }];
 
     const genderForTitle = (title) => (title === "Mr" || title === "Master" ? 1 : 2);
+    const genderCode = (p) => (p.gender === "Female" ? 2 : p.gender === "Male" ? 1 : genderForTitle(p.title));
 
     return sourcePassengers.map((p) => ({
       Title: p.title || "Mr",
@@ -283,24 +324,38 @@ export default function PaymentPage() {
       LastName: p.lastName || "Passenger",
       PaxType: p.paxType || 1,
       DateOfBirth: p.dob ? `${p.dob}T00:00:00` : (p.paxType === 3 ? "2025-01-01T00:00:00" : "1995-01-01T00:00:00"),
-      Gender: genderForTitle(p.title),
-      PassportNo: "",
-      PassportExpiry: "",
-      AddressLine1: "123 Main St",
+      Gender: genderCode(p),
+      // Real value collected on the passenger form — sending an empty
+      // string here is what previously produced "Passport No can't be
+      // empty" from Adivaha/TBO, even on a domestic fare. Falls back to an
+      // empty string only for the deep-link testing fallback above, which
+      // has no passport data to send in the first place.
+      PassportNo: p.passportNo || "",
+      PassportExpiry: p.passportExpiry ? `${p.passportExpiry}T00:00:00` : "",
+      AddressLine1: shared.addressLine1 || "123 Main St",
       AddressLine2: "",
-      City: "Delhi",
-      CountryCode: "IN",
-      CountryName: "India",
-      Nationality: "IN",
+      City: shared.city || "Delhi",
+      CountryCode: countryCode,
+      CountryName: COUNTRY_NAMES[countryCode] || "India",
+      Nationality: countryCode,
       ContactNo: contactNo,
       Email: email,
       IsLeadPax: !!p.isLeadPax,
-      // Fare object from the FareQuote response, required per-passenger by
-      // the booking API. Adivaha's docs show this simply as `Fare object`
-      // without expanding sub-fields, so we forward the exact object the
-      // FareQuote endpoint returned — adjust here if Adivaha support
-      // clarifies a different per-PaxType breakdown is expected.
-      Fare: rawFare,
+      // Fare object Adivaha requires per-passenger. This MUST be the fare
+      // for this ONE passenger, not the aggregate total across every
+      // adult/child/infant on the booking — Adivaha's FareBreakdown array
+      // gives the exact base+tax total charged for each PassengerType, so
+      // buildPerPassengerFare() divides that type's total by its count to
+      // get the true single-passenger amount. Sending the same aggregate
+      // Fare object (e.g. the 2-adult+1-child+1-infant total) on every
+      // Passengers[] entry — as this previously did — overstates the fare
+      // by a multiple of the passenger count and is exactly the kind of
+      // mismatch Adivaha's gateway rejects with a generic error on
+      // multi-passenger bookings, even though it happens to "work" for a
+      // single adult (where per-passenger and aggregate are the same
+      // number). Falls back to the aggregate Fare object only if the
+      // option has no FareBreakdown to derive a per-unit figure from.
+      Fare: buildPerPassengerFare(flight.rawOption, p.paxType || 1) || rawFare,
       Baggage: p.isLeadPax && baggageObjs.length > 0 ? baggageObjs : [],
       MealDynamic: p.isLeadPax && mealObj ? [mealObj] : [],
       SeatDynamic: p.isLeadPax && seatObj ? [seatObj] : []
@@ -310,8 +365,8 @@ export default function PaymentPage() {
   const processBookingAfterPayment = async (paymentId) => {
     try {
       setIsProcessing(true);
-      const traceId = location.state?.traceId || flight.rawOption?.TraceId;
-      const resultIndex = location.state?.resultIndex || flight.rawOption?.ResultIndex;
+      const traceId = flight.rawOption?.TraceId || location.state?.traceId;
+      const resultIndex = flight.rawOption?.ResultIndex || location.state?.resultIndex;
       const isLCC = flight.rawOption?.IsLCC !== false;
       const isDomesticFlight = flight.rawOption?.IsDomestic !== false; // Adivaha flag when present, default true (INR routes)
 
@@ -327,6 +382,18 @@ export default function PaymentPage() {
         isoneway: "Yes",
         isDomestic: isDomesticFlight ? "Yes" : "No",
         IsDomesticReturn: "No",
+        // A non-empty placeholder for the common case where Adivaha doesn't
+        // actually require one. For fares that DO require one
+        // (IsPromoCodeRequired, checked above as `promoCodeRequired`), the
+        // real code the user typed into the Promo Code field on this page
+        // is sent instead — Adivaha validates it against a real coupon on
+        // its side; testing confirmed a placeholder like "NA" gets rejected
+        // with "PromoCode is mandatory for this Booking" for those fares,
+        // because the field is actually checked against a real value, not
+        // just non-empty.
+        PromoCode: promoCodeRequired
+          ? airlinePromoCode.trim()
+          : (flight.rawOption?.PromoCode || location.state?.promoCode || "NA"),
         Passengers: buildPassengersPayload()
       };
 
@@ -390,6 +457,7 @@ export default function PaymentPage() {
         routerNavigate("/booking-failure", {
           state: {
             ...location.state,
+            paymentSucceeded: true,
             errorMessage: bookingFailureMessage || "Payment was received but we couldn't confirm your ticket. Our team will follow up shortly."
           }
         });
@@ -411,13 +479,20 @@ export default function PaymentPage() {
 
       // Check if Adivaha returned a provider error (e.g. Status: 7605 "Sorry fare is not available. Please try with new fare")
       const rawStatus = bookingRes?.data?.Status || outerResp?.Status || outerResp?.Error?.ErrorCode;
-      const statusMsg = bookingRes?.data?.status_message || outerResp?.status_message || outerResp?.Error?.ErrorMessage;
+      // Prefer the SPECIFIC reason (Error.ErrorMessage — e.g. "PromoCode is
+      // mandatory for this Booking.") over the generic top-level
+      // status_message ("Failed"), which used to win here purely because it
+      // happened to come first in this `||` chain. That meant the customer
+      // (and support, reading the same string later) only ever saw "Failed"
+      // instead of the actual, actionable reason the booking was rejected.
+      const statusMsg = outerResp?.Error?.ErrorMessage || bookingRes?.data?.status_message || outerResp?.status_message;
 
       if (rawStatus === 7605 || (rawStatus && rawStatus !== 0 && rawStatus !== 1)) {
         console.warn("[Booking API Error]", { rawStatus, statusMsg });
         routerNavigate("/booking-failure", {
           state: {
             ...location.state,
+            paymentSucceeded: true,
             errorMessage: statusMsg || "Sorry, this flight fare is no longer available. Please search again for updated fares."
           }
         });
@@ -435,6 +510,7 @@ export default function PaymentPage() {
         routerNavigate("/booking-failure", {
           state: {
             ...location.state,
+            paymentSucceeded: true,
             errorMessage: "Payment was received but the airline didn't confirm a booking reference. Our team will follow up shortly — please contact support with your transaction ID."
           }
         });
@@ -468,6 +544,7 @@ export default function PaymentPage() {
             isoneway: bookingPayload.isoneway,
             isDomestic: bookingPayload.isDomestic,
             IsDomesticReturn: bookingPayload.IsDomesticReturn,
+            PromoCode: bookingPayload.PromoCode,
             Passengers: bookingPayload.Passengers
           });
         } catch (err) {
@@ -484,6 +561,7 @@ export default function PaymentPage() {
           routerNavigate("/booking-failure", {
             state: {
               ...location.state,
+              paymentSucceeded: true,
               errorMessage: issueFailureMessage || "Your seat was held and payment received, but ticket issuance failed. Our team will follow up shortly."
             }
           });
@@ -493,13 +571,16 @@ export default function PaymentPage() {
         const issueOuter = issueRes?.data?.responseData?.Response || issueRes?.data?.responseData || null;
         const issueInner = (issueOuter?.Response && typeof issueOuter.Response === "object") ? issueOuter.Response : issueOuter;
         const issueRawStatus = issueRes?.data?.Status || issueOuter?.Status || issueOuter?.Error?.ErrorCode;
-        const issueStatusMsg = issueRes?.data?.status_message || issueOuter?.status_message || issueOuter?.Error?.ErrorMessage;
+        // Same precedence fix as the LCC branch above — the specific
+        // provider reason should win over the generic "Failed" string.
+        const issueStatusMsg = issueOuter?.Error?.ErrorMessage || issueRes?.data?.status_message || issueOuter?.status_message;
 
         if (issueRawStatus === 7605 || (issueRawStatus && issueRawStatus !== 0 && issueRawStatus !== 1)) {
           console.warn("[Ticket Issue API Error]", { issueRawStatus, issueStatusMsg });
           routerNavigate("/booking-failure", {
             state: {
               ...location.state,
+              paymentSucceeded: true,
               errorMessage: issueStatusMsg || "Ticket issuance failed. Our team will follow up shortly."
             }
           });
@@ -539,6 +620,7 @@ export default function PaymentPage() {
       routerNavigate("/booking-failure", {
         state: {
           ...location.state,
+          paymentSucceeded: true,
           errorMessage: err.message || "Payment was received but we couldn't confirm your ticket. Our team will follow up shortly."
         }
       });
@@ -548,6 +630,11 @@ export default function PaymentPage() {
   };
 
   const handlePay = async () => {
+    if (promoCodeMissing) {
+      // Don't attempt Razorpay — the inline field below already shows why.
+      return;
+    }
+
     // Attempt Razorpay Standard Gateway Checkout
     const isLoaded = await loadRazorpayScript();
     if (isLoaded && window.Razorpay) {
@@ -693,6 +780,30 @@ export default function PaymentPage() {
                   </div>
                 </div>
 
+                {/* Airline-required Promo Code — only shown when Adivaha's
+                    FareQuote flagged this exact fare as IsPromoCodeRequired.
+                    Not a discount field: this fare simply cannot be ticketed
+                    without a real code here, whatever value it is. */}
+                {promoCodeRequired && (
+                  <div className="mt-4">
+                    <label htmlFor="airlinePromoCode" className="text-[13px] font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                      <Tag className="w-[14px] h-[14px] text-[#FF2D1A]" />
+                      Promo Code (required for this fare)
+                    </label>
+                    <input
+                      id="airlinePromoCode"
+                      type="text"
+                      value={airlinePromoCode}
+                      onChange={(e) => setAirlinePromoCode(e.target.value)}
+                      placeholder="Enter the promo code for this fare"
+                      className="mt-2 w-full h-[42px] px-3.5 rounded-lg border border-[#EAEAEA] text-[14px] font-semibold text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-[#FF2D1A]/30 focus:border-[#FF2D1A]"
+                    />
+                    <p className="text-[11px] text-[#6B6B6B] font-medium mt-1.5">
+                      This fare is only bookable with a valid promo code — enter it above to enable payment.
+                    </p>
+                  </div>
+                )}
+
               </div>
             </div>
 
@@ -700,7 +811,7 @@ export default function PaymentPage() {
             <div className="space-y-3.5">
               <button
                 type="button"
-                disabled={isProcessing || (walletBalance && walletBalance.balance < totalAmount)}
+                disabled={isProcessing || promoCodeMissing || (walletBalance && walletBalance.balance < totalAmount)}
                 onClick={handlePay}
                 className="w-full py-4 bg-[#FF2D1A] hover:bg-red-700 text-white font-bold text-base rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 select-none active:scale-[0.99] font-quicksand cursor-pointer disabled:opacity-50"
               >
@@ -723,6 +834,13 @@ export default function PaymentPage() {
                 <span>Secured by Razorpay • 256-Bit SSL Encrypted Payment Gateway</span>
               </div>
 
+              {promoCodeMissing && (
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>Enter the promo code above to enable payment for this fare.</span>
+                </div>
+              )}
+
               {walletBalance && walletBalance.balance < totalAmount && (
                 <div className="flex items-center justify-center gap-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -737,6 +855,8 @@ export default function PaymentPage() {
           <aside className="w-full flex flex-col gap-6 text-left">
             <BookingSummary flight={flight} />
             <FareSummary
+              breakdown={fareBreakdown}
+              taxesTotal={taxesBreakdownTotal}
               basePrice={basePrice}
               taxes={taxes}
               additionalAmount={additionalAmount}

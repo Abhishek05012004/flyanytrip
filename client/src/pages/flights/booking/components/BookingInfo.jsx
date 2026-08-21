@@ -3,20 +3,28 @@
  * PATH: client/src/pages/flights/booking/components/BookingInfo.jsx
  * DESCRIPTION: Passenger details and contact information input form (Step 1).
  *
- * NOTE: This form is now fully controlled. Every field the Adivaha
- * ticketForLcc / flightBook APIs require per passenger (Title, FirstName,
- * LastName, DateOfBirth for infants, ContactNo, Email) is collected here and
- * lifted to BookingPage via onContinue(data), instead of being discarded
- * and replaced with hardcoded placeholder passenger data at payment time.
+ * NOTE: This form is fully controlled and collects every field Adivaha's
+ * ticketForLcc / flightBook / Non-LCC Ticket Issue APIs accept per passenger
+ * — Title, FirstName, LastName, Gender, DateOfBirth, PassportNo,
+ * PassportExpiry — plus a shared Nationality/City/Address block sent on
+ * every passenger entry. The docs list PassportNo/PassportExpiry as
+ * optional, but real bookings against this account have been rejected with
+ * "Passport No can't be empty" even on a purely domestic (DEL-BOM) LCC
+ * fare — so rather than gate these behind a domestic/international guess
+ * that's already been proven wrong once, they're collected for every
+ * passenger on every booking. All of this is lifted to BookingPage via
+ * onContinue(data), instead of being discarded and replaced with hardcoded
+ * placeholder passenger data (address "123 Main St", empty PassportNo,
+ * etc.) at payment time like it was before.
  * ============================================================================
  */
 
 import React, { useState } from "react";
 import { Mail, User, ChevronDown } from "lucide-react";
 
-const emptyAdult = () => ({ title: "Mr", firstName: "", lastName: "" });
-const emptyChild = () => ({ title: "Master", firstName: "", lastName: "" });
-const emptyInfant = () => ({ title: "Master", firstName: "", lastName: "", dob: "" });
+const emptyAdult = () => ({ title: "Mr", firstName: "", lastName: "", gender: "Male", dob: "", passportNo: "", passportExpiry: "" });
+const emptyChild = () => ({ title: "Master", firstName: "", lastName: "", gender: "Male", dob: "", passportNo: "", passportExpiry: "" });
+const emptyInfant = () => ({ title: "Master", firstName: "", lastName: "", gender: "Male", dob: "", passportNo: "", passportExpiry: "" });
 
 export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount = 0, infantsCount = 0 }) {
   const adultCountSafe = Math.max(1, parseInt(adultsCount, 10) || 1);
@@ -32,6 +40,15 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
   const [adults, setAdults] = useState(() => Array.from({ length: adultCountSafe }, emptyAdult));
   const [children, setChildren] = useState(() => Array.from({ length: childCountSafe }, emptyChild));
   const [infants, setInfants] = useState(() => Array.from({ length: infantCountSafe }, emptyInfant));
+
+  // Shared travel-document details Adivaha's Passengers[] schema repeats on
+  // every entry (AddressLine1, City, CountryCode, CountryName, Nationality)
+  // — collected once here rather than per traveller, and applied to all of
+  // them at submit time, since asking for a separate home address per
+  // family member adds friction without adding any real value.
+  const [nationality, setNationality] = useState("IN");
+  const [city, setCity] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
 
   const updatePax = (setter, idx, field, value) => {
     setter((prev) => {
@@ -52,6 +69,10 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         title: p.title,
         firstName: p.firstName,
         lastName: p.lastName,
+        gender: p.gender,
+        dob: p.dob,
+        passportNo: p.passportNo,
+        passportExpiry: p.passportExpiry,
         isLeadPax: idx === 0
       })),
       ...children.map((p) => ({
@@ -59,6 +80,10 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         title: p.title,
         firstName: p.firstName,
         lastName: p.lastName,
+        gender: p.gender,
+        dob: p.dob,
+        passportNo: p.passportNo,
+        passportExpiry: p.passportExpiry,
         isLeadPax: false
       })),
       ...infants.map((p) => ({
@@ -66,7 +91,10 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         title: p.title,
         firstName: p.firstName,
         lastName: p.lastName,
+        gender: p.gender,
         dob: p.dob,
+        passportNo: p.passportNo,
+        passportExpiry: p.passportExpiry,
         isLeadPax: false
       }))
     ];
@@ -76,6 +104,11 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
         mobile: contactMobile,
         countryCode: contactCode,
         email: contactEmail
+      },
+      sharedDetails: {
+        nationality,
+        city,
+        addressLine1
       },
       passengers
     });
@@ -226,6 +259,64 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     />
                   </div>
                 </div>
+
+                {/* Row 2: Gender, Date of Birth, Passport No, Passport Expiry.
+                    Adivaha's own docs list PassportNo/PassportExpiry as
+                    optional, but a real booking on this account was
+                    rejected with "Passport No can't be empty" on a purely
+                    domestic fare — so these are collected for every
+                    passenger rather than gated behind a domestic/
+                    international guess that's already proven unreliable. */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px]">
+                  <div className="text-left relative">
+                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Gender *</span>
+                    <div className="relative">
+                      <select
+                        value={pax.gender}
+                        onChange={(e) => updatePax(setAdults, idx, "gender", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                      >
+                        <option>Male</option>
+                        <option>Female</option>
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="text-left">
+                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Date of Birth *</span>
+                    <input
+                      type="date"
+                      required
+                      value={pax.dob}
+                      onChange={(e) => updatePax(setAdults, idx, "dob", e.target.value)}
+                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
+                    />
+                  </div>
+
+                  <div className="text-left">
+                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Number *</span>
+                    <input
+                      type="text"
+                      required
+                      value={pax.passportNo}
+                      onChange={(e) => updatePax(setAdults, idx, "passportNo", e.target.value)}
+                      placeholder="e.g. M1234567"
+                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
+                    />
+                  </div>
+
+                  <div className="text-left">
+                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Expiry *</span>
+                    <input
+                      type="date"
+                      required
+                      value={pax.passportExpiry}
+                      onChange={(e) => updatePax(setAdults, idx, "passportExpiry", e.target.value)}
+                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -288,6 +379,57 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                         onChange={(e) => updatePax(setChildren, idx, "lastName", e.target.value)}
                         placeholder="Enter last name"
                         className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px] mt-4">
+                    <div className="text-left relative">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Gender *</span>
+                      <div className="relative">
+                        <select
+                          value={pax.gender}
+                          onChange={(e) => updatePax(setChildren, idx, "gender", e.target.value)}
+                          className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                        >
+                          <option>Male</option>
+                          <option>Female</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Date of Birth *</span>
+                      <input
+                        type="date"
+                        required
+                        value={pax.dob}
+                        onChange={(e) => updatePax(setChildren, idx, "dob", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
+                      />
+                    </div>
+
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Number *</span>
+                      <input
+                        type="text"
+                        required
+                        value={pax.passportNo}
+                        onChange={(e) => updatePax(setChildren, idx, "passportNo", e.target.value)}
+                        placeholder="e.g. M1234567"
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
+                      />
+                    </div>
+
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Expiry *</span>
+                      <input
+                        type="date"
+                        required
+                        value={pax.passportExpiry}
+                        onChange={(e) => updatePax(setChildren, idx, "passportExpiry", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
                       />
                     </div>
                   </div>
@@ -358,15 +500,59 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
                     </div>
                   </div>
 
-                  <div className="text-left max-w-[280px]">
-                    <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Date of Birth * (Required for Infant)</span>
-                    <input
-                      type="date"
-                      required
-                      value={pax.dob}
-                      onChange={(e) => updatePax(setInfants, idx, "dob", e.target.value)}
-                      className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px]">
+                    <div className="text-left relative">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Gender *</span>
+                      <div className="relative">
+                        <select
+                          value={pax.gender}
+                          onChange={(e) => updatePax(setInfants, idx, "gender", e.target.value)}
+                          className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg pl-3 pr-7 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] cursor-pointer appearance-none"
+                        >
+                          <option>Male</option>
+                          <option>Female</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Date of Birth * (Required for Infant)</span>
+                      <input
+                        type="date"
+                        required
+                        value={pax.dob}
+                        onChange={(e) => updatePax(setInfants, idx, "dob", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
+                      />
+                    </div>
+
+                    {/* Not marked required for infants — unlike adults/children,
+                        there's no evidence yet that Adivaha enforces this for
+                        PaxType 3, and many infants travelling domestically
+                        genuinely don't have one yet. Still collected (and sent
+                        if filled) so it's available the moment an itinerary
+                        needs it. */}
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Number (if available)</span>
+                      <input
+                        type="text"
+                        value={pax.passportNo}
+                        onChange={(e) => updatePax(setInfants, idx, "passportNo", e.target.value)}
+                        placeholder="e.g. M1234567"
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A] placeholder-[#94A3B8]"
+                      />
+                    </div>
+
+                    <div className="text-left">
+                      <span className="text-[12px] font-medium text-[#64748B] block mb-1.5 font-inter">Passport Expiry (if available)</span>
+                      <input
+                        type="date"
+                        value={pax.passportExpiry}
+                        onChange={(e) => updatePax(setInfants, idx, "passportExpiry", e.target.value)}
+                        className="w-full h-[44px] bg-white border border-[#CBD5E1] rounded-lg px-3.5 text-[14px] font-medium text-[#0F172A] focus:outline-none focus:border-[#FF2D1A]"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -374,6 +560,60 @@ export default function BookingInfo({ onContinue, adultsCount = 1, childrenCount
           </div>
         )}
 
+      </div>
+
+      {/* 3. Shared Nationality / Address block — Adivaha repeats
+          AddressLine1/City/CountryCode/CountryName/Nationality on every
+          Passengers[] entry; collected once here and applied to all
+          travellers rather than asking for a separate address per family
+          member. */}
+      <div className="bg-white border border-[#EAEAEA] rounded-2xl p-[32px] shadow-2xs font-inter">
+        <h3 className="text-[18.57px] font-bold text-[#1A1A1A] mb-1 font-inter">Address &amp; Nationality</h3>
+        <p className="text-[15.09px] text-[#666666] font-normal mb-6 font-inter">Required by the airline for ticketing — applied to all travellers on this booking</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px]">
+          <div className="text-left">
+            <span className="text-[13.93px] font-normal text-[#666666] block mb-2 font-inter">Nationality *</span>
+            <select
+              required
+              value={nationality}
+              onChange={(e) => setNationality(e.target.value)}
+              className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg px-4 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none cursor-pointer appearance-none"
+            >
+              <option value="IN">India</option>
+              <option value="US">United States</option>
+              <option value="GB">United Kingdom</option>
+              <option value="AE">United Arab Emirates</option>
+              <option value="AU">Australia</option>
+              <option value="CA">Canada</option>
+              <option value="SG">Singapore</option>
+            </select>
+          </div>
+
+          <div className="text-left">
+            <span className="text-[13.93px] font-normal text-[#666666] block mb-2 font-inter">City *</span>
+            <input
+              type="text"
+              required
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Delhi"
+              className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg px-4 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none placeholder-[#757575]"
+            />
+          </div>
+
+          <div className="text-left">
+            <span className="text-[13.93px] font-normal text-[#666666] block mb-2 font-inter">Address Line 1 *</span>
+            <input
+              type="text"
+              required
+              value={addressLine1}
+              onChange={(e) => setAddressLine1(e.target.value)}
+              placeholder="House no., street, area"
+              className="w-full h-[50px] bg-white border border-[#EAEAEA] rounded-lg px-4 text-[16.25px] font-normal text-[#1A1A1A] focus:outline-none placeholder-[#757575]"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Continue CTA Button */}

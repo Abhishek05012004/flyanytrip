@@ -1,33 +1,50 @@
-{"status":"200","status_message":"OK","responseData":{"Response":{"Error":{"ErrorCode":0,"ErrorMessage":""},"FlightDetailChangeInfo":null,"IsPriceChanged":false,"ItineraryChangeList":[],"ResponseStatus":1,"Results":{"FareInclusions":[],"FirstNameFormat":"If
-FirstName is missing, Update FirstName as LastName.\r\n\t\t\t
-<br\ /> For UAE Sector- If there is a space in the passenger's last name, then split it (ie, put the name before the
-space in the first name).\r\n\t\t\t
-<br\ /> If the passenger has a single word name in last name so put father name will be the first name as per
-passport.","IsBookableIfSeatNotAvailable":true,"IsExclusiveFare":false,"IsFreeMealAvailable":false,"IsHoldAllowedWithSSR":false,"IsHoldMandatoryWithSSR":false,"LastNameFormat":"If
-LastName is missing, Update LastName and FirstName as FirstName.\r\n\t\t\t
-<br\ /> For UAE Sector - If there is a space in the passenger's given name, then split it (ie, put the name after the
-space in the last name).\r\n\t\t\t
-<br\ /> If the passenger has a single word name in given name so put father name will be the last name as per
-passport.","ResultIndex":"OB68[TBO]CyuP2PnPNfYW7QLH1WgaUFOC6WrisR0JYI6qKXsuCFXFRzJtFW\/DIRL0a1VtRerD7UXqQ318IIgBB75\/fjAs9rGK8fvMAEn5jnI6zp1n6rCnSDDZe924EnMm2kfDJ5BzVvzua0LP9IJWdLn6VSkzkQC
-efmnvWBAuSaJ0MDZnghib2MyGvTZUC5xwvoFsGGxOA\/J8a2cflykZK5bhCzzhnQcVj88369GV9nxiFZAYll1V2DoxpXZTnwYoMZJwao
-UKZAEyWt5UT\/IOOS\/QwQiASh7Bt6j4c4QQXDTCCa0EJk\/FGmsmaRRrrBmAsxQbrWKyPjCTc Bm2GKZyBFpkbOCnIIFBn0UAt7dgL0caDGkx
-AGvVR8APlk8K 7z RADv6kfdAf7PQ\/ETUgdYEp5TEWWuU2dJp2ECtR\/nFO3CVZhS9U3ed1f9Vub7es8EkMS\/Pw3VqnjD\/UTnrQKaJnyvI9oqvz
-mnGFa6cx0NIlSCVB4 rU3SMHW5qsmvE5LG5CRgAaitAA17PXXzfc37qTFqR6kU 7\/81cZfOzbNkFCFeIX0AdrorAIqD1nnWOIT3fmt4\/8lG2
-z8GWKr6Hv\/IXRT3KB6ahQbpTGUZNusGeNxRnqkAY7d3K Bwa2GtsjDwaip08glOYl dhmPvNRcEOvJNx\/W
-8YIV79bl5ZGOcVaXGv5S2k9HTn2tVbtDwhutj ylvOMWAoObHUSqoAgpcc5pnbvBz15pHI\/eh1L431kBDB5A8VeZ1vFL4XXipU1yBAgOM9jHLaV7
-mFb8pahlIjGBdTL9Vn2epJHSP8oZqpkvJODqwHwuTbgluIh8yiIfyP8\/kZ4jc3MIk1f1wIOSWBR7nwM8HnBk69Ru235uF6SXY1anI18RJOkaRU7\/nITV9ntEpJgSluHNngjeVzTOVYnXKJ8QtAxZjCBiznyXC7J7h8nUF0KcRKy3tTUknvkUCCAoFUyXX\/aVeLp8ZeN6kiVkIY0YmyokUd4M4eeRPGeyQ3QrFBENFMRGGFA15YRDjkU9V6iqAcSHbcyqlp2ibZNTZ
-PE6mbJqweJ6hAzt8VMHnqs\/gfMJ Agn1gCRZ6K c8NGyMZP280IdZJ2NLry44pRdoK2FNKBi8vb G9Uv2R\/KRlLfKES50nGlRMwe
-v","Source":6,"IsLCC":true,"IsRefundable":true,"IsPanRequiredAtBook":false,"IsPanRequiredAtTicket":false,"IsPassportRequiredAtBook":false,"IsPassportRequiredAtTicket":false,"GSTAllowed":true,"IsCouponAppilcable":true,"IsGSTMandatory":false,"IsHoldAllowed":true,"AirlineRemark":"6E
-main.","IsPassportFullDetailRequiredAtBook":false,"ResultFareType":"RegularFare","Fare":{"CFARAmount":0,"DCFARAmount":0,"ServiceFeeDisplayType":0,"Currency":"INR","BaseFare":4868,"Tax":1576,"TaxBreakup":[{"key":"K3","value":288},{"key":"UDF","value":152},{"key":"YR","value":50},{"key":"YQTax","value":800},{"key":"OtherTaxes","value":236},{"key":"RcfTax","value":50}],"YQTax":800,"AdditionalTxnFeeOfrd":0,"AdditionalTxnFeePub":0,"PGCharge":0,"OtherCharges":0,"ChargeBU":[{"key":"TBOMARKUP","value":0},{"key":"GLOBALPROCUREMENTCHARGE","value":0},{"key":"CONVENIENCECHARGE","value":0},{"key":"OTHERCHARGE","value":0}],"Discount":0,"PublishedFare":6444,"CommissionEarned":103.67,"PLBEarned":0,"IncentiveEarned":0,"OfferedFare":6381.8,"TdsOnCommission":41.47,"TdsOnPLB":0,"TdsOnIncentive":0,"ServiceFee":0,"TotalBaggageCharges":0,"TotalMealCharges":0,"TotalSeatCharges":0,"TotalSpecialServiceCharges":0},"FareBreakdown":[{"CFARAmount":0,"DCFARAmount":0,"SegmentDetails":[{"CabinBaggage":{"FreeText":"7
-KG","Unit":"KG","Value":"7"},"CheckedInBaggage":{"FreeText":"15
-KG","Unit":"KG","Value":"15"},"FlightInfoIndex":"1"}],"Currency":"INR","PassengerType":1,"PassengerCount":1,"BaseFare":4868,"Tax":1576,"TransactionFee":0,"YQTax":800,"TaxBreakUp":[{"key":"UDF","value":152},{"key":"YR","value":50},{"key":"YQTax","value":800},{"key":"K3","value":288},{"key":"OtherTaxes","value":236},{"key":"RcfTax","value":50}],"AdditionalTxnFeePub":0,"PGCharge":0,"AdditionalTxnFeeOfrd":0,"SupplierReissueCharges":0}],"Segments":[[{"Baggage":"15
-KG","CabinBaggage":"7
-KG","CabinClass":2,"SupplierFareClass":"Flexi","TripIndicator":1,"SegmentIndicator":1,"Airline":{"AirlineCode":"6E","AirlineName":"IndiGo","FlightNumber":"873","FareClass":"FL","OperatingCarrier":""},"Origin":{"Airport":{"AirportCode":"DEL","AirportName":"Indira
+{"status":"200","status_message":"OK","responseData":{"Response":{"Error":{"ErrorCode":0,"ErrorMessage":""},"FlightDetailChangeInfo":"FlightCabinBaggageChanged","IsPriceChanged":false,"ItineraryChangeList":[7],"ResponseStatus":1,"Results":{"FareInclusions":[],"FirstNameFormat":"Canada:
+If Given\/First Name missing, put surname in Last Name and Given Name as \"FNU\" + title (e.g., SMITH\/FNU MR).\r\nUAE:
+Single-name travel documents not allowed. Passports must have surname and given name separated by
+space.\r\nExamples:\r\n- Maryam (Given only): Not accepted\r\n- (No surname)\/Maryam: Not accepted\r\n- Ali\/Maryam:
+Accepted as Ali\/Maryam MS\r\n- Maryam Ali (single field, space & MRZ): Accepted as Maryam Ali\/FNU
+MS\r\nExemptions:\r\n- Parent\/guardian name on passport\r\n- UAE ID with two names\r\n- UAE employment visa or visa
+with additional names\r\n- Government duty passport\r\nAustralia\/NZ:\r\n1. Single name repeated as Last\/First (e.g.,
+JONES\/JONES MR).\r\n2. Single-char surname repeated twice as Last Name; Given Name as First (e.g., OO\/JOE
+MR).","IsBookableIfSeatNotAvailable":false,"IsExclusiveFare":false,"IsFreeMealAvailable":true,"IsHoldAllowedWithSSR":true,"IsHoldMandatoryWithSSR":false,"IsPromoCodeRequired":false,"LastNameFormat":"For
+Canada: If LastName is missing, set LastName as \"LNU\" and FirstName as \"Given Name(s) Title\" (e.g., LNU\/JEREMY
+BROWN MR).\r\nFor UAE: If LastName is missing but full name exists in GivenName (e.g., \"Maryam Ali\"), set LastName as
+full name and FirstName as \"FNU Title\" (e.g., MARYAM ALI\/FNU MS).\r\nFor Australia & New Zealand: If only one name
+exists on the passport, repeat the name as both LastName and FirstName (e.g., JONES\/JONES
+MR).","RequiredFieldValidators":[],"ResultIndex":"OB1[TBO]rf9xpDblgqISBabB0sXSSddoCliEM0d9Arcb6ne1CeeDE9
+HiYo9gCrQwgO0ssHASZOjZOf4jEQTBs\/2hYlCJukRJ1XqU7aAl7JRm\/dpgF2U4nnIU4AvP4X1Q97\/Swq7f5BeXDbEHuX\/WpPqW3OwxZi0bdOKp6a6BisKhzOgFcd0d5IU0T37vKsyeMtrnN8yn3lnV4OujxaJzOIfalGhsvnvMFSjTLbC
+2PN\/F2\/il7hGzBuKjDXz9p1OZ621eQ1NFWmg0UYyt8nD13lENyQIGlGmCIgt3t\/roSnhOD9rngm0GNx2ioideKEVKJmuNiBTysBVauhpskzQQTLgGtoFiUL8S9q5UcOQjT96Oy6UJ4J5TLOsK8vy8MSxFrvymwc4aXFoNtyAZPuiBa7JN4RqkK2RCbZh3
+GeiJ60iRspd\/HTZ7Mwtln3R3qpXDgop8aG1vGOGnrgqSNs9wkhf\/\/LLszVipHrj2NtMxPvF5hmJIEmyPZK avpL5pl2n8XpM8
+2dDhMcUVV9i40AoOksLiZzTEHnnCyI93OfXTESeuFpVYe\/IjuQMRZgpXNJkROHObRBCOGy5rL4pftHFgNNtgn
+R\/3scHs94RCfgT53ACyi3Iqb7MmKZwkTmPVE3im6IS5oFkMI4JX5feKKwIu5e
+HBmQZMlmWBKTGtSI30GnER9EABzaqPM1jcuG3L6ijlwv8uUd8\/q0sROn5 MAdPG1U7h2qIRm eHUkRdxLm5JFrw9U\/N9wsJuYQFmwU\/H
+hRlG3FaVHtKET1zzlnNNlkjAnN1erArwj9dNTZQCuxTqclsxJD0cc3veJLQu
+0LMDa6jHh2vDgyRDmRU81jSn0T3g9q4jvpDSAFrD1llyc3YkOldFbvAxtTcKGesjbcp0iM3OL5YlfSt95IrUm97pA5KLOMn0niaKhBJ
+al6tpL\/K7HMvUcQhwMiCJTqfaWH3GM3 aiUzO\/SGjC2RIxtqzCs3kHeblwhSkRl0t4vacWV0JUYrMQgoLMoXIPHcn2JQRwlQx4o4xF9ao3I
+Zm2Mlf2X5l4NPax0WGWToOClkj5cQSlxt8Bq3aXRzCUxsxWVLONj3v0BNNANdScAgpq5
+Uk1IG7xyU1U7GDdwwdnDC84=","Source":77,"IsLCC":false,"IsRefundable":true,"IsPanRequiredAtBook":false,"IsPanRequiredAtTicket":false,"IsPassportRequiredAtBook":false,"IsPassportRequiredAtTicket":false,"GSTAllowed":true,"IsCouponAppilcable":true,"IsGSTMandatory":false,"IsHoldAllowed":true,"AirlineRemark":"We
+are testing Airline remark node. AmadeusNDC
+Result.","IsPassportFullDetailRequiredAtBook":false,"ResultFareType":"RegularFare","Fare":{"CFARAmount":0,"DCFARAmount":0,"ServiceFeeDisplayType":0,"Currency":"INR","BaseFare":5546,"Tax":1510,"TaxBreakup":[{"key":"K3","value":0},{"key":"YQTax","value":549},{"key":"YR","value":170},{"key":"OtherTaxes","value":791}],"YQTax":549,"AdditionalTxnFeeOfrd":0,"AdditionalTxnFeePub":0,"PGCharge":0,"OtherCharges":11.8,"ChargeBU":[{"key":"TBOMARKUP","value":0},{"key":"GLOBALPROCUREMENTCHARGE","value":0},{"key":"CONVENIENCECHARGE","value":0},{"key":"OTHERCHARGE","value":11.8}],"Discount":0,"PublishedFare":7067.8,"CommissionEarned":47.16,"PLBEarned":329.93,"IncentiveEarned":0,"OfferedFare":6841.54,"TdsOnCommission":18.86,"TdsOnPLB":131.97,"TdsOnIncentive":0,"ServiceFee":0,"TotalBaggageCharges":0,"TotalMealCharges":0,"TotalSeatCharges":0,"TotalSpecialServiceCharges":0},"FareBreakdown":[{"CFARAmount":0,"DCFARAmount":0,"SegmentDetails":[{"CabinBaggage":{"FreeText":"Carry
+on baggage allowance - Allowed upto 7 Kgs for
+1pc","NoOfPiece":"1","Unit":"KG","Value":"7"},"CheckedInBaggage":{"Unit":"KG","Value":"15"},"FlightInfoIndex":"1"}],"Currency":"INR","PassengerType":1,"PassengerCount":1,"BaseFare":5546,"Tax":1510,"TransactionFee":0,"YQTax":549,"TaxBreakUp":[{"key":"YQTax","value":549},{"key":"YR","value":170},{"key":"OtherTaxes","value":791}],"AdditionalTxnFeePub":0,"PGCharge":0,"AdditionalTxnFeeOfrd":0,"SupplierReissueCharges":0}],"Segments":[[{"Baggage":"15
+KG","CabinBaggage":"7KG (7 KG X 1
+pcs)","CabinClass":2,"SupplierFareClass":"PublishNDC","TripIndicator":1,"SegmentIndicator":1,"Airline":{"AirlineCode":"AI","AirlineName":"Air
+India","FlightNumber":"2951","FareClass":"T","OperatingCarrier":"AI"},"Origin":{"Airport":{"AirportCode":"DEL","AirportName":"Indira
 Gandhi
-Airport","Terminal":"1","CityCode":"DEL","CityName":"Delhi","CountryCode":"IN","CountryName":"India"},"DepTime":"2026-08-27T08:20:00"},"Destination":{"Airport":{"AirportCode":"BLR","AirportName":"Kempegowda
-International
-Airport","Terminal":"1","CityCode":"BLR","CityName":"Bangalore","CountryCode":"IN","CountryName":"India"},"ArrTime":"2026-08-27T11:10:00"},"Duration":170,"GroundTime":0,"Mile":0,"StopOver":false,"FlightInfoIndex":"1","StopPoint":"","StopPointArrivalTime":"0001-01-01T00:00:00","StopPointDepartureTime":"0001-01-01T00:00:00","Craft":"321","Remark":null,"IsETicketEligible":true,"FlightStatus":"Confirmed","Status":"","FareClassification":{"Color":"rgb(209,168,213)","Type":"Flexi"}}]],"LastTicketDate":"","TicketAdvisory":null,"FareRules":[{"Origin":"DEL","Destination":"BLR","Airline":"6E","FareBasisCode":"RUIP","FareRuleDetail":"","FareRestriction":"","FareFamilyCode":"","FareRuleIndex":""}],"AirlineCode":"6E","MiniFareRules":[[{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Reissue","From":"0","To":"3","Unit":"DAYS","Details":"INR
-999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Reissue","From":"4","To":"","Unit":"DAYS","Details":"INR
-299","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Cancellation","From":"0","To":"3","Unit":"DAYS","Details":"INR
-2999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BLR","Type":"Cancellation","From":"4","To":"","Unit":"DAYS","Details":"INR
-1999","OnlineReissueAllowed":false,"OnlineRefundAllowed":false}]],"ValidatingAirline":"6E","FareClassification":{"Color":"rgb(209,168,213)","Type":"Flexi"}},"TraceId":"362c71d1-9597-4f71-948d-b0d37a6af57d"}}}
+Airport","Terminal":"3","CityCode":"DEL","CityName":"Delhi","CountryCode":"IN","CountryName":"India"},"DepTime":"2026-08-25T13:20:00"},"Destination":{"Airport":{"AirportCode":"BOM","AirportName":"Chhatrapati
+Shivaji International
+Airport","Terminal":"2","CityCode":"BOM","CityName":"Mumbai","CountryCode":"IN","CountryName":"India"},"ArrTime":"2026-08-25T15:45:00"},"AccumulatedDuration":145,"Duration":145,"GroundTime":0,"Mile":0,"StopOver":false,"FlightInfoIndex":"1","StopPoint":"","StopPointArrivalTime":"0001-01-01T00:00:00","StopPointDepartureTime":"0001-01-01T00:00:00","Craft":"32N","Remark":null,"IsETicketEligible":true,"FlightStatus":"Confirmed","Status":"","FareClassification":null}]],"LastTicketDate":"19Aug26","TicketAdvisory":null,"FareRules":[{"Origin":"DEL","Destination":"BOM","Airline":"AI","FareBasisCode":"TU1YXR2I","FareRuleDetail":"","FareRestriction":"","FareFamilyCode":"","FareRuleIndex":"","MiniFareRules":{"Currency":"INR","Rules":[{"DepartureType":"Before
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":5000,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":0},{"DepartureType":"No
+Show Before
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":0},{"DepartureType":"After
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":0},{"DepartureType":"No
+Show After
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":0},{"DepartureType":"Before
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":3000,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":1},{"DepartureType":"No
+Show Before
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":1},{"DepartureType":"After
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":1},{"DepartureType":"No
+Show After
+Departure","FromDuration":null,"PaxPenalties":[{"AirlineFee":0,"Currency":"INR","PassengerType":1}],"ToDuration":null,"Type":1}]}}],"AirlineCode":"AI","MiniFareRules":[[{"CFARExcludedDetails":"","JourneyPoints":"DEL-BOM","Type":"Reissue","From":"","To":"","Unit":"","Details":"INR
+3000*","OnlineReissueAllowed":true,"OnlineRefundAllowed":false},{"CFARExcludedDetails":"","JourneyPoints":"DEL-BOM","Type":"Cancellation","From":"","To":"","Unit":"","Details":"INR
+5000*","OnlineReissueAllowed":false,"OnlineRefundAllowed":true}]],"ValidatingAirline":"AI","FareClassification":{"Color":"lightblue","Type":"PublishNDC"}},"TraceId":"fe1d4f70-194b-42dc-8770-26b31c6ecf0c"}}}

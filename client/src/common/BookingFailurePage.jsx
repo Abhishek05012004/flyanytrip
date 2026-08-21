@@ -41,6 +41,17 @@ export default function BookingFailurePage() {
 
   const transactionId = location.state?.transactionId || "TXN-FAIL-89472A";
 
+  // Was money actually taken? PaymentPage only ever routes here AFTER
+  // Razorpay reported success — the failure that follows is Adivaha
+  // rejecting the booking/ticket, not a declined card. Showing "Payment
+  // Failed" / "Uncharged Amount" in that case is actively wrong: it tells a
+  // customer who WAS charged that they weren't, and "Retry Payment" would
+  // just resubmit the exact same doomed booking (e.g. a promo-locked fare)
+  // and risk charging them a second time for a booking that can never
+  // succeed. Only the Developer Sandbox's "Simulate Payment Failure" button
+  // is a genuine pre-charge payment failure.
+  const paymentSucceeded = !!location.state?.paymentSucceeded;
+
   // 2. Interactive Component States
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(null);
@@ -52,7 +63,17 @@ export default function BookingFailurePage() {
   };
 
   const handleRetry = () => {
-    // Go back to the payment page to try again
+    if (paymentSucceeded) {
+      // Never resend this same booking to the payment step — the payment
+      // already went through once; only the airline-side booking failed.
+      // Retrying identical passenger/fare data would just reproduce the
+      // same rejection (or worse, double-charge in a live gateway). Send
+      // the customer back to search for a fresh, bookable fare instead.
+      navigate("/flights");
+      return;
+    }
+    // Genuine pre-charge payment failure (sandbox "Simulate Payment
+    // Failure") — going back to retry the same payment is safe here.
     navigate(-1);
   };
 
@@ -88,12 +109,14 @@ export default function BookingFailurePage() {
 
             {/* Heading */}
             <h1 className="text-[33.75px] font-bold leading-[37.5px] mt-[15px]">
-              Payment Failed
+              {paymentSucceeded ? "Booking Could Not Be Confirmed" : "Payment Failed"}
             </h1>
 
             {/* Subtitle / Custom Error Message */}
             <p className="text-[15px] font-medium opacity-90 mt-[7.5px] mb-[22.5px] leading-[22.5px] max-w-[480px]">
-              {location.state?.errorMessage || "The transaction was declined by your banking provider or timed out. Don't worry, if any money was deducted it will be refunded within 3-5 business days."}
+              {location.state?.errorMessage || (paymentSucceeded
+                ? "Your payment went through, but the airline could not confirm this booking. Our team will follow up shortly — any amount charged will be refunded if the ticket cannot be issued."
+                : "The transaction was declined by your banking provider or timed out. Don't worry, if any money was deducted it will be refunded within 3-5 business days.")}
             </p>
 
             {/* Reference info */}
@@ -222,7 +245,9 @@ export default function BookingFailurePage() {
                   <span className="text-[16px] font-semibold text-gray-800">₹{taxes.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex items-center justify-between py-[8px] last:border-b-0">
-                  <span className="text-[14px] font-bold text-gray-800">Uncharged Amount</span>
+                  <span className="text-[14px] font-bold text-gray-800">
+                    {paymentSucceeded ? "Amount Charged (pending refund if unresolved)" : "Uncharged Amount"}
+                  </span>
                   <span className="text-[18px] font-extrabold text-[#EF4444]">
                     ₹{totalAmount.toLocaleString("en-IN")}
                   </span>
@@ -247,7 +272,7 @@ export default function BookingFailurePage() {
                   className="w-full bg-[#FE2C1C] hover:bg-[#D82212] active:scale-98 text-white py-[11.25px] rounded-[10px] font-bold text-[13.125px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
                 >
                   <RefreshCw className="w-[14px] h-[14px]" />
-                  <span>Retry Payment</span>
+                  <span>{paymentSucceeded ? "Search a New Flight" : "Retry Payment"}</span>
                 </button>
 
                 {/* Change payment method or cancel booking */}
